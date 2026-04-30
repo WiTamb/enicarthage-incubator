@@ -1,0 +1,45 @@
+# --- IDEs and Editor ---
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.factorypath
+bin/
+.history/
+
+# --- Java / Maven (Backend) ---
+enicarthage-incubator/target/
+enicarthage-incubator/mvnw
+enicarthage-incubator/mvnw.cmd
+enicarthage-incubator/.mvn/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# --- Node / Angular (Frontend) ---
+enicarthage-incubator-ui/node_modules/
+enicarthage-incubator-ui/dist/
+enicarthage-incubator-ui/.angular/
+enicarthage-incubator-ui/npm-debug.log*
+enicarthage-incubator-ui/yarn-debug.log*
+enicarthage-incubator-ui/yarn-error.log*
+enicarthage-incubator-ui/.env
+enicarthage-incubator-ui/.env.local
+
+# --- Application Specific ---
+enicarthage-incubator/uploads/
+enicarthage-incubator/erreur.txt
+enicarthage-incubator/error_ai.txt
+erreur.txt
+test_project.json
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+desktop.ini

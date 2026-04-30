@@ -1,0 +1,29 @@
+<div class="dashboard-layout">
+  <app-sidebar></app-sidebar>
+
+  <main class="main-content">
+    <header class="top-bar glass-card">
+      <h2>{{ user?.role === 'STUDENT' ? 'Mes Projets' : 'Tous les Projets' }}</h2>
+      <button *ngIf="user?.role === 'STUDENT'" class="btn-primary" routerLink="/submit-project">+ Nouveau Projet</button>
+    </header>
+
+    <div class="recent-projects glass-card" style="margin-top: 1.5rem;">
+      <div class="empty-state" *ngIf="projects.length === 0">
+        <p *ngIf="user?.role === 'STUDENT'">Aucun projet trouvé. Commencez par soumettre votre première idée !</p>
+        <p *ngIf="user?.role !== 'STUDENT'">Aucun projet n'a été soumis pour le moment.</p>
+      </div>
+      <div class="list-container" *ngIf="projects.length > 0">
+        <div class="list-item" *ngFor="let project of projects">
+          <div class="item-header">
+            <h4>{{ project.title }}</h4>
+            <span class="status-badge" [ngClass]="project.status">{{ project.status }}</span>
+          </div>
+          <p class="item-desc">{{ project.description }}</p>
+          <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);" *ngIf="user?.role !== 'STUDENT' && project.owner">
+            Soumis par : {{ project.owner.firstName }} {{ project.owner.lastName }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

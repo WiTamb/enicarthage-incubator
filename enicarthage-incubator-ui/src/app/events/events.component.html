@@ -1,0 +1,36 @@
+<div class="dashboard-layout">
+  <app-sidebar></app-sidebar>
+
+  <main class="main-content">
+    <header class="top-bar glass-card">
+      <h2>Tous les Événements</h2>
+    </header>
+
+    <div class="recent-events glass-card" style="margin-top: 1.5rem;">
+      <div class="empty-state" *ngIf="events.length === 0">
+        <p>Aucun événement de prévu pour le moment.</p>
+      </div>
+      <div class="list-container" *ngIf="events.length > 0">
+        <div class="list-item event-card" *ngFor="let event of events">
+          <div class="event-date-box">
+            <span class="day">{{ event.eventDate | date:'dd' }}</span>
+            <span class="month">{{ event.eventDate | date:'MMM' }}</span>
+          </div>
+          <div class="event-details">
+            <div class="item-header">
+              <h4>{{ event.title }}</h4>
+              <span class="status-badge" [ngClass]="event.published ? 'ACCEPTED' : 'SUBMITTED'">
+                {{ event.published ? 'Publié' : 'Brouillon' }}
+              </span>
+            </div>
+            <p class="item-desc">{{ event.description }}</p>
+            <div class="event-meta">
+              <span><i class="icon">📍</i> {{ event.location }}</span>
+              <span><i class="icon">🕒</i> {{ event.eventDate | date:'shortTime' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
