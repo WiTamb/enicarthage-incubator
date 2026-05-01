@@ -29,6 +29,7 @@ public class Project {
     private String documentPath;
     private String imagePath;
     private String videoUrl;
+    private String githubUrl;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

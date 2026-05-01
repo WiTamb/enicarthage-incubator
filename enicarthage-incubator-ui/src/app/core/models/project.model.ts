@@ -30,7 +30,7 @@ export interface ProjectRequest {
   domain?: string;
   teamMembers?: string;
   videoUrl?: string;
-  programId: number;
+  programId?: number;
   roundId?: number;
 }
 

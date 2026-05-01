@@ -25,9 +25,9 @@ import { AuthService } from '../../../core/services/auth.service';
           <!-- Nav links -->
           <div class="hidden md:flex items-center gap-8">
             <a routerLink="/" routerLinkActive="text-primary-600" [routerLinkActiveOptions]="{exact: true}" class="text-sm font-medium text-text-secondary hover:text-primary-600 transition-colors">Accueil</a>
-            <a href="#programs" class="text-sm font-medium text-text-secondary hover:text-primary-600 transition-colors">Programmes</a>
-            <a href="#events" class="text-sm font-medium text-text-secondary hover:text-primary-600 transition-colors">Événements</a>
-            <a href="#news" class="text-sm font-medium text-text-secondary hover:text-primary-600 transition-colors">Actualités</a>
+            <a [routerLink]="['/']" fragment="programs" class="text-sm font-medium text-text-secondary hover:text-primary-600 transition-colors">Programmes</a>
+            <a [routerLink]="['/']" fragment="events" class="text-sm font-medium text-text-secondary hover:text-primary-600 transition-colors">Événements</a>
+            <a [routerLink]="['/']" fragment="news" class="text-sm font-medium text-text-secondary hover:text-primary-600 transition-colors">Actualités</a>
           </div>
 
           <!-- CTA -->
@@ -72,9 +72,9 @@ import { AuthService } from '../../../core/services/auth.service';
           <div>
             <h4 class="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4">Plateforme</h4>
             <ul class="space-y-2.5">
-              <li><a href="#" class="text-sm text-slate-400 hover:text-white transition-colors">Programmes</a></li>
-              <li><a href="#" class="text-sm text-slate-400 hover:text-white transition-colors">Événements</a></li>
-              <li><a href="#" class="text-sm text-slate-400 hover:text-white transition-colors">Actualités</a></li>
+              <li><a [routerLink]="['/']" fragment="programs" class="text-sm text-slate-400 hover:text-white transition-colors">Programmes</a></li>
+              <li><a [routerLink]="['/']" fragment="events" class="text-sm text-slate-400 hover:text-white transition-colors">Événements</a></li>
+              <li><a [routerLink]="['/']" fragment="news" class="text-sm text-slate-400 hover:text-white transition-colors">Actualités</a></li>
             </ul>
           </div>
           <div>
@@ -82,7 +82,7 @@ import { AuthService } from '../../../core/services/auth.service';
             <ul class="space-y-2.5">
               <li><a routerLink="/register" class="text-sm text-slate-400 hover:text-white transition-colors">S'inscrire</a></li>
               <li><a routerLink="/login" class="text-sm text-slate-400 hover:text-white transition-colors">Se connecter</a></li>
-              <li><a href="#" class="text-sm text-slate-400 hover:text-white transition-colors">Soumettre un projet</a></li>
+              <li><a routerLink="/register" class="text-sm text-slate-400 hover:text-white transition-colors">Soumettre un projet</a></li>
             </ul>
           </div>
           <div>

@@ -1,21 +1,19 @@
 package com.enicarthage.incubator.dto.request;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class EvaluationRequest {
-
-    @NotNull(message = "Le projet est obligatoire")
     private Long projectId;
-
-    @NotNull(message = "Le score est obligatoire")
-    @Min(value = 0, message = "Le score minimum est 0")
-    @Max(value = 100, message = "Le score maximum est 100")
+    
+    @Min(0) @Max(100)
     private Integer score;
-
-    @NotBlank(message = "Le commentaire est obligatoire")
+    
+    @NotBlank
     private String comment;
-
+    
     private String recommendation;
 }

@@ -2,7 +2,6 @@ package com.enicarthage.incubator.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -36,4 +35,9 @@ public class Evaluation {
     @ManyToOne
     @JoinColumn(name = "evaluator_id", nullable = false)
     private User evaluator;
+
+    // Link evaluation to a specific round
+    @ManyToOne
+    @JoinColumn(name = "round_id")
+    private Round round;
 }

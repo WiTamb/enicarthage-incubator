@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +19,7 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final ProgramRepository programRepository;
     private final RoundRepository roundRepository;
+    private final ApplicationRepository applicationRepository;
     private final FileStorageService fileStorageService;
     private final NotificationService notificationService;
 
@@ -26,8 +28,26 @@ public class ProjectService {
         User owner = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
 
-        Program program = programRepository.findById(request.getProgramId())
-                .orElseThrow(() -> new ResourceNotFoundException("Programme introuvable"));
+        // Rule: Must have an active application in an open session
+        Application application = applicationRepository.findByCandidateId(owner.getId()).stream()
+                .filter(a -> a.getSession().getStatus() != SessionStatus.CLOSED)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Vous ne pouvez pas soumettre de projet sans session d'incubation active"));
+
+        // Rule: Must be accepted for the current round
+        if (!application.getStatus().name().startsWith("ACCEPTED") && application.getStatus() != ApplicationStatus.PENDING) {
+             throw new IllegalStateException("Votre statut actuel (" + application.getStatus() + ") ne vous permet pas de soumettre de projet pour le moment.");
+        }
+
+        Round targetRound = application.getCurrentRound();
+        
+        // If no round set yet (first submission), default to Round 1 of the session
+        if (targetRound == null) {
+            targetRound = application.getSession().getRounds().stream()
+                    .filter(r -> r.getOrderIndex() == 1)
+                    .findFirst()
+                    .orElse(null);
+        }
 
         Project project = Project.builder()
                 .title(request.getTitle())
@@ -35,16 +55,11 @@ public class ProjectService {
                 .domain(request.getDomain())
                 .teamMembers(request.getTeamMembers())
                 .videoUrl(request.getVideoUrl())
+                .githubUrl(request.getGithubUrl())
                 .owner(owner)
-                .program(program)
                 .status(ProjectStatus.SUBMITTED)
+                .round(targetRound) 
                 .build();
-
-        if (request.getRoundId() != null) {
-            Round round = roundRepository.findById(request.getRoundId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Round introuvable"));
-            project.setRound(round);
-        }
 
         if (document != null && !document.isEmpty()) {
             String docPath = fileStorageService.store(document, "documents");
@@ -60,7 +75,8 @@ public class ProjectService {
 
         notificationService.createNotification(
                 owner,
-                "Votre projet \"" + saved.getTitle() + "\" a été soumis avec succès.",
+                "Votre projet \"" + saved.getTitle() + "\" a été soumis avec succès pour le " + 
+                (project.getRound() != null ? project.getRound().getName() : "Round 1") + ".",
                 "SUCCESS"
         );
 
@@ -75,6 +91,20 @@ public class ProjectService {
 
     public List<Project> getAllProjects() {
         return projectRepository.findAll();
+    }
+
+    public List<Project> getProjectsForEvaluator(String userEmail) {
+        User evaluator = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
+        
+        if (evaluator.getRole() == Role.ADMIN) return getAllProjects();
+
+        // Direct database filtering via rounds where evaluator is assigned
+        return projectRepository.findAll().stream()
+                .filter(p -> p.getRound() != null && 
+                            p.getRound().getEvaluators() != null && 
+                            p.getRound().getEvaluators().stream().anyMatch(e -> e.getId().equals(evaluator.getId())))
+                .collect(Collectors.toList());
     }
 
     public Project getProjectById(Long id) {

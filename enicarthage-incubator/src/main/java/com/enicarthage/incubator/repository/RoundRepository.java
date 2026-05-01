@@ -7,6 +7,6 @@ import java.util.List;
 
 @Repository
 public interface RoundRepository extends JpaRepository<Round, Long> {
+    List<Round> findBySessionIdOrderByOrderIndexAsc(Long sessionId);
     List<Round> findByProgramId(Long programId);
-    List<Round> findByActive(boolean active);
 }

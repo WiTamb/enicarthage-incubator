@@ -42,6 +42,15 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Liste des utilisateurs", userService.getAllUsers()));
     }
 
+    @GetMapping("/evaluators")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EVALUATOR')")
+    public ResponseEntity<ApiResponse<List<User>>> getEvaluators() {
+        List<User> evaluators = userService.getAllUsers().stream()
+                .filter(u -> u.getRole() == Role.EVALUATOR || u.getRole() == Role.ADMIN)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success("Liste des évaluateurs", evaluators));
+    }
+
     @GetMapping("/admin/users/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<User>> getUserById(@PathVariable Long id) {

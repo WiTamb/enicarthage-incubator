@@ -60,11 +60,16 @@ public class ProjectController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'EVALUATOR')")
     public ResponseEntity<ApiResponse<List<Project>>> getAllProjects(
-            @RequestParam(required = false) ProjectStatus status) {
+            @RequestParam(required = false) ProjectStatus status,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        List<Project> projects = (status != null)
-                ? projectService.getByStatus(status)
-                : projectService.getAllProjects();
+        List<Project> projects = projectService.getProjectsForEvaluator(userDetails.getUsername());
+        
+        if (status != null) {
+            projects = projects.stream()
+                    .filter(p -> p.getStatus() == status)
+                    .collect(java.util.stream.Collectors.toList());
+        }
 
         return ResponseEntity.ok(ApiResponse.success("Liste des projets", projects));
     }

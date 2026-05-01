@@ -19,6 +19,10 @@ export class UserService {
     return this.http.put<ApiResponse<User>>(`${this.API}/api/profile`, data);
   }
 
+  getEvaluators(): Observable<ApiResponse<User[]>> {
+    return this.http.get<ApiResponse<User[]>>(`${this.API}/api/evaluators`);
+  }
+
   // Admin
   getAllUsers(): Observable<ApiResponse<User[]>> {
     return this.http.get<ApiResponse<User[]>>(`${this.API}/api/admin/users`);

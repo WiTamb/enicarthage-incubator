@@ -3,6 +3,8 @@ package com.enicarthage.incubator.config;
 import com.enicarthage.incubator.model.Role;
 import com.enicarthage.incubator.model.User;
 import com.enicarthage.incubator.repository.UserRepository;
+import com.enicarthage.incubator.repository.SessionRepository;
+import com.enicarthage.incubator.repository.RoundRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Component;
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
+    private final SessionRepository sessionRepository;
+    private final RoundRepository roundRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -79,5 +83,39 @@ public class DataInitializer implements CommandLineRunner {
             log.info("✅ Projets de test créés");
         }
         */
+        // Créer une session de test si aucune n'existe
+        if (sessionRepository.count() == 0) {
+            com.enicarthage.incubator.model.Session testSession = com.enicarthage.incubator.model.Session.builder()
+                    .name("Incubation 2024 - Sprint Automne")
+                    .description("La session phare pour les projets innovants de l'ENICarthage. Rejoignez-nous pour transformer vos idées en startups.")
+                    .startDate(java.time.LocalDate.now())
+                    .endDate(java.time.LocalDate.now().plusMonths(3))
+                    .status(com.enicarthage.incubator.model.SessionStatus.OPEN)
+                    .build();
+            
+            testSession = sessionRepository.save(testSession);
+            
+            // Ajouter 2 rounds
+            com.enicarthage.incubator.model.Round r1 = com.enicarthage.incubator.model.Round.builder()
+                    .session(testSession)
+                    .name("Round 1 : Pitch Initial")
+                    .description("Présentation du concept global")
+                    .orderIndex(1)
+                    .status(com.enicarthage.incubator.model.RoundStatus.ACTIVE)
+                    .build();
+            
+            com.enicarthage.incubator.model.Round r2 = com.enicarthage.incubator.model.Round.builder()
+                    .session(testSession)
+                    .name("Round 2 : MVP & Technique")
+                    .description("Démonstration de la solution technique")
+                    .orderIndex(2)
+                    .status(com.enicarthage.incubator.model.RoundStatus.UPCOMING)
+                    .build();
+            
+            roundRepository.save(r1);
+            roundRepository.save(r2);
+            
+            log.info("✅ Session de test créée avec 2 rounds");
+        }
     }
 }

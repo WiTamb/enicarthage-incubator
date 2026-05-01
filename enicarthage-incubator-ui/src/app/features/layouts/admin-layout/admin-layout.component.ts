@@ -45,6 +45,12 @@ import { AuthService } from '../../../core/services/auth.service';
             Programmes
           </a>
 
+          <span class="px-4 pt-4 text-[10px] font-semibold text-text-muted uppercase tracking-widest">Incubation</span>
+          <a routerLink="/admin/sessions" routerLinkActive="sidebar-link-active" class="sidebar-link">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+            Sessions & Rounds
+          </a>
+
           <span class="px-4 pt-4 text-[10px] font-semibold text-text-muted uppercase tracking-widest">Contenu</span>
           <a routerLink="/admin/events" routerLinkActive="sidebar-link-active" class="sidebar-link">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
