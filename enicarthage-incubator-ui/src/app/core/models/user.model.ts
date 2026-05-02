@@ -19,4 +19,5 @@ export interface User {
   blocked: boolean;
   createdAt: string;
   updatedAt?: string;
+  firstLogin?: boolean;
 }

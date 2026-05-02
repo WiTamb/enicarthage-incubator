@@ -32,6 +32,12 @@ public class Event {
     @Builder.Default
     private boolean published = true;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean registrationEnabled = false;
+
+    private Integer maxParticipants;
+
     @Column(updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -16,11 +16,7 @@ import { AuthService } from '../../../core/services/auth.service';
         [class.translate-x-0]="sidebarOpen()">
 
         <div class="h-16 flex items-center gap-2.5 px-6 border-b border-slate-100">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center">
-            <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
+          <img src="assets/images/logo.png" alt="Logo" class="h-8 w-auto object-contain">
           <span class="text-sm font-bold font-display text-text-primary">Évaluateur</span>
         </div>
 
@@ -29,10 +25,6 @@ import { AuthService } from '../../../core/services/auth.service';
           <a routerLink="/evaluator" routerLinkActive="sidebar-link-active" [routerLinkActiveOptions]="{exact:true}" class="sidebar-link">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             Tableau de bord
-          </a>
-          <a routerLink="/evaluator/projects" routerLinkActive="sidebar-link-active" class="sidebar-link">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-            Projets à évaluer
           </a>
           <a routerLink="/evaluator/sessions" routerLinkActive="sidebar-link-active" class="sidebar-link">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -69,7 +61,14 @@ import { AuthService } from '../../../core/services/auth.service';
             <span class="text-sm text-text-muted">Espace</span>
             <span class="badge bg-accent-100 text-accent-700">Évaluateur</span>
           </div>
-          <div></div>
+          <div class="flex items-center gap-4">
+            @if (auth.userRole() === 'ADMIN') {
+              <a routerLink="/admin" class="btn-ghost btn-sm flex items-center gap-2 text-primary-600 hover:bg-primary-50 font-medium">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                Basculer vers Administrateur
+              </a>
+            }
+          </div>
         </header>
 
         <main class="p-6 lg:p-8">

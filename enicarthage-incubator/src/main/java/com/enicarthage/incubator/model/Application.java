@@ -1,6 +1,8 @@
 package com.enicarthage.incubator.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -30,9 +32,14 @@ public class Application {
     private Round currentRound;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(columnDefinition = "varchar(35)")
     @Builder.Default
     private ApplicationStatus status = ApplicationStatus.PENDING;
+
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<QuestionnaireAnswer> questionnaireAnswers = new java.util.ArrayList<>();
 
     @Column(updatable = false)
     private LocalDateTime appliedAt;

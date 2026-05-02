@@ -24,4 +24,5 @@ export interface AuthResponse {
   firstName: string;
   lastName: string;
   role: Role;
+  firstLogin?: boolean;
 }

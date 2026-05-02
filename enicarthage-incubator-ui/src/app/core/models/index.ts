@@ -9,8 +9,17 @@ export interface Event {
   imagePath?: string;
   videoUrl?: string;
   published: boolean;
+  registrationEnabled: boolean;
+  maxParticipants?: number;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface EventRegistration {
+  id: number;
+  event?: Event;
+  user?: User;
+  registeredAt: string;
 }
 
 export interface News {

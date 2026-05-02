@@ -5,8 +5,9 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApplicationService } from '../../../core/services/application.service';
 import { SessionService } from '../../../core/services/session.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { QuestionnaireService } from '../../../core/services/questionnaire.service';
 import { Role } from '../../../core/models/user.model';
-import { Application, Session, Round } from '../../../core/models/session.model';
+import { Application, Session, Round, QuestionnaireAnswer } from '../../../core/models/session.model';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { RoundStepperComponent } from '../../shared/round-stepper/round-stepper.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
@@ -43,7 +44,10 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
         @for (r of rounds; track r.id) { <option [value]="r.id">{{ r.name }}</option> }
       </select>
       <div class="flex-1"></div>
-      <button (click)="exportCSV()" class="btn-ghost btn-sm text-xs border border-slate-200">📥 Export CSV</button>
+      <button (click)="exportCSV()" class="btn-ghost btn-sm text-xs border border-slate-200 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Export CSV
+      </button>
     </div>
 
     <!-- Table -->
@@ -79,8 +83,13 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
               </td>
               <td class="px-6 py-4 text-center"><app-status-badge [status]="a.status" /></td>
               <td class="px-6 py-4" (click)="$event.stopPropagation()">
-                <div class="flex justify-end gap-2">
-                  <button (click)="openEval(a)" class="btn-primary btn-sm text-[10px] px-3 py-1 bg-amber-500 hover:bg-amber-600 border-none">Évaluer</button>
+                <div class="flex items-center justify-end gap-2">
+                  <button (click)="selectApp(a); $event.stopPropagation()" class="btn-ghost btn-sm px-2 py-1 text-primary-600 hover:bg-primary-50 rounded-lg" title="Voir l'historique des évaluations">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                  </button>
+                  @if (!isAdmin) {
+                    <button (click)="openEval(a); $event.stopPropagation()" [disabled]="isOut(a)" class="btn-primary btn-sm text-[10px] px-3 py-1 bg-amber-500 hover:bg-amber-600 border-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-500">Évaluer</button>
+                  }
                   @if (isAdmin) {
                     @if (a.status === 'PENDING') {
                       <button (click)="confirmAction('accept', a)" class="btn-primary btn-sm text-[10px] px-3 py-1">Accepter</button>
@@ -189,21 +198,37 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
           }
         </div>
 
-        <!-- System Timeline -->
+        <!-- Questionnaire Answers -->
         <div class="mt-10 pt-10 border-t border-slate-100">
-          <h3 class="text-[10px] font-bold text-text-muted mb-4 uppercase tracking-widest">Activité Système</h3>
-          <div class="space-y-4">
-            <div class="flex gap-4 text-xs">
-              <div class="w-2.5 h-2.5 rounded-full bg-primary-400 mt-1 flex-shrink-0"></div>
-              <div><p class="font-bold text-text-primary">Candidature enregistrée</p><p class="text-text-muted">{{ selected.appliedAt | date:'medium' }}</p></div>
+          <h3 class="text-[10px] font-bold text-text-muted mb-6 uppercase tracking-widest">Réponses au Questionnaire</h3>
+          
+          @if (answersLoading) {
+            <div class="space-y-4">
+              @for (i of [1,2]; track i) {
+                <div class="h-20 bg-slate-50 rounded-xl animate-pulse"></div>
+              }
             </div>
-            @if (selected.updatedAt !== selected.appliedAt) {
-              <div class="flex gap-4 text-xs">
-                <div class="w-2.5 h-2.5 rounded-full bg-slate-300 mt-1 flex-shrink-0"></div>
-                <div><p class="font-bold text-text-primary">Dernière mise à jour</p><p class="text-text-muted">{{ selected.updatedAt | date:'medium' }}</p></div>
-              </div>
-            }
-          </div>
+          } @else if (selectedAnswers.length > 0) {
+            <div class="space-y-6">
+              @for (a of selectedAnswers; track a.id) {
+                <div class="group">
+                  <p class="text-xs font-bold text-text-primary mb-2 flex items-start gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-text-muted flex-shrink-0">{{ $index + 1 }}</span>
+                    {{ a.question?.label || 'Question' }}
+                  </p>
+                  <div class="pl-7">
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-text-secondary leading-relaxed">
+                      {{ a.answer }}
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="p-6 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+              <p class="text-xs text-text-muted italic">Aucun questionnaire rempli pour cette candidature.</p>
+            </div>
+          }
         </div>
       </div>
     }
@@ -229,6 +254,8 @@ export class ApplicantsComponent implements OnInit {
   submitting = false;
   evalTarget: Application | null = null;
   evalForm = { score: 0, comment: '', recommendation: '' };
+  selectedAnswers: any[] = [];
+  answersLoading = false;
 
   pendingAction: { action: string; app: Application } | null = null;
   basePath = '/evaluator';
@@ -239,6 +266,7 @@ export class ApplicantsComponent implements OnInit {
     private router: Router, 
     private appSvc: ApplicationService, 
     private sessionSvc: SessionService,
+    private questionnaireSvc: QuestionnaireService,
     private auth: AuthService
   ) {}
 
@@ -288,7 +316,20 @@ export class ApplicantsComponent implements OnInit {
 
   isOut(a: Application) { return a.status === 'REJECTED' || a.status.startsWith('ELIMINATED'); }
   initials(name: string) { return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(); }
-  selectApp(a: Application) { this.selected = a; }
+  selectApp(a: Application) { 
+    this.selected = a; 
+    this.selectedAnswers = [];
+    this.answersLoading = true;
+    this.questionnaireSvc.getAnswers(this.sessionId, a.id).subscribe({
+      next: (r: any) => {
+        this.selectedAnswers = r.data || [];
+        this.answersLoading = false;
+      },
+      error: () => {
+        this.answersLoading = false;
+      }
+    });
+  }
 
   confirmAction(action: string, app: Application) { this.pendingAction = { action, app }; }
 

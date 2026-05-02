@@ -56,6 +56,10 @@ public class Round {
     @Builder.Default
     private Set<User> evaluators = new HashSet<>();
 
+    @OneToMany(mappedBy = "round", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<Project> projects = new java.util.ArrayList<>();
+
     public int getRoundNumber() {
         return roundNumber != 0 ? roundNumber : orderIndex;
     }

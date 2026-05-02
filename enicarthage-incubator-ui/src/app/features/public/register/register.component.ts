@@ -10,11 +10,17 @@ import { RegisterRequest } from '../../../core/models/auth.model';
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
-    <div class="min-h-screen flex">
-      <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-accent-500 via-primary-600 to-navy-900 relative items-center justify-center p-12">
+    <div class="min-h-screen flex relative">
+      <!-- Back to home button -->
+      <a routerLink="/" class="absolute top-6 left-6 z-10 flex items-center gap-2 text-white/80 hover:text-white transition-colors bg-black/20 hover:bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full font-medium text-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Retour à l'accueil
+      </a>
+
+      <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 via-primary-700 to-navy-900 relative items-center justify-center p-12">
         <div class="relative text-center max-w-md">
-          <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-8">
-            <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+          <div class="bg-white rounded-[2.5rem] p-10 shadow-2xl mx-auto mb-12 max-w-[360px] flex items-center justify-center ring-8 ring-white/10 transition-transform duration-500 hover:-translate-y-2">
+            <img src="assets/images/logo2.png" alt="Incubateur ENICarthage" class="w-full h-auto object-contain drop-shadow-sm rounded-xl">
           </div>
           <h2 class="text-3xl font-bold text-white font-display mb-4">Rejoignez-nous</h2>
           <p class="text-primary-100 text-lg">Créez votre compte et soumettez votre premier projet.</p>
@@ -30,31 +36,40 @@ import { RegisterRequest } from '../../../core/models/auth.model';
           <form (ngSubmit)="onSubmit()" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div class="form-group">
-                <label class="label">Prénom</label>
+                <label class="label">Prénom <span class="text-danger-500">*</span></label>
                 <input type="text" class="input" [(ngModel)]="form.firstName" name="firstName" required>
               </div>
               <div class="form-group">
-                <label class="label">Nom</label>
+                <label class="label">Nom <span class="text-danger-500">*</span></label>
                 <input type="text" class="input" [(ngModel)]="form.lastName" name="lastName" required>
               </div>
             </div>
             <div class="form-group">
-              <label class="label">Email</label>
+              <label class="label">Email <span class="text-danger-500">*</span></label>
               <input type="email" class="input" [(ngModel)]="form.email" name="email" required>
             </div>
+            
             <div class="form-group">
-              <label class="label">Mot de passe (min. 8 caractères)</label>
+              <label class="label">Mot de passe <span class="text-danger-500">*</span></label>
               <input type="password" class="input" [(ngModel)]="form.password" name="password" minlength="8" required>
+              <p class="text-xs text-text-muted mt-1">Min 8 caractères, 1 lettre, 1 chiffre, 1 caractère spécial.</p>
             </div>
             <div class="form-group">
-              <label class="label">Téléphone</label>
-              <input type="tel" class="input" [(ngModel)]="form.phone" name="phone">
+              <label class="label">Confirmer le mot de passe <span class="text-danger-500">*</span></label>
+              <input type="password" class="input" [(ngModel)]="confirmPassword" name="confirmPassword" required>
             </div>
-            <div class="form-group">
-              <label class="label">Spécialité</label>
-              <input type="text" class="input" [(ngModel)]="form.specialty" name="specialty">
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="form-group">
+                <label class="label">Téléphone <span class="text-danger-500">*</span></label>
+                <input type="tel" class="input" [(ngModel)]="form.phone" name="phone" required>
+              </div>
+              <div class="form-group">
+                <label class="label">Spécialité</label>
+                <input type="text" class="input" [(ngModel)]="form.specialty" name="specialty">
+              </div>
             </div>
-            <button type="submit" class="btn-primary btn-md w-full mt-2" [disabled]="loading">
+            <button type="submit" class="btn-primary btn-md w-full mt-4" [disabled]="loading">
               @if (loading) { <span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> }
               Créer mon compte
             </button>
@@ -68,14 +83,46 @@ import { RegisterRequest } from '../../../core/models/auth.model';
   `
 })
 export class RegisterComponent {
-  form: RegisterRequest = { firstName: '', lastName: '', email: '', password: '' };
-  loading = false; error = '';
+  form: RegisterRequest = { firstName: '', lastName: '', email: '', password: '', phone: '', specialty: '' };
+  confirmPassword = '';
+  loading = false; 
+  error = '';
+
   constructor(private authService: AuthService, private router: Router) {}
+
   onSubmit() {
-    this.loading = true; this.error = '';
+    this.error = '';
+
+    if (!this.form.firstName || !this.form.lastName || !this.form.email || !this.form.password || !this.form.phone || !this.confirmPassword) {
+      this.error = 'Veuillez remplir tous les champs obligatoires.';
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&.])[A-Za-z\d@$!%*#?&.]{8,}$/;
+    if (!passwordRegex.test(this.form.password)) {
+      this.error = 'Le mot de passe doit contenir au moins 8 caractères, une lettre, un chiffre et un caractère spécial.';
+      return;
+    }
+
+    if (this.form.password !== this.confirmPassword) {
+      this.error = 'Les mots de passe ne correspondent pas.';
+      return;
+    }
+
+    this.loading = true;
     this.authService.register(this.form).subscribe({
-      next: r => { this.loading = false; if (r.success) this.router.navigate([this.authService.getHomeRoute()]); else this.error = r.message; },
-      error: e => { this.loading = false; this.error = e.error?.message || 'Erreur lors de l\'inscription'; }
+      next: r => { 
+        this.loading = false; 
+        if (r.success) {
+          this.router.navigate([this.authService.getHomeRoute()]); 
+        } else {
+          this.error = r.message; 
+        }
+      },
+      error: e => { 
+        this.loading = false; 
+        this.error = e.error?.message || 'Erreur lors de l\'inscription'; 
+      }
     });
   }
 }

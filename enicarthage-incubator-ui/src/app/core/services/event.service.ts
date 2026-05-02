@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
-import { Event } from '../models/index';
+import { Event, EventRegistration } from '../models/index';
 
 @Injectable({ providedIn: 'root' })
 export class EventService {
@@ -39,5 +39,22 @@ export class EventService {
 
   deleteEvent(id: number): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(`${this.API}/${id}`);
+  }
+
+  // Registrations
+  registerForEvent(eventId: number): Observable<ApiResponse<EventRegistration>> {
+    return this.http.post<ApiResponse<EventRegistration>>(`${this.API}/${eventId}/registrations`, {});
+  }
+
+  getEventParticipants(eventId: number): Observable<ApiResponse<EventRegistration[]>> {
+    return this.http.get<ApiResponse<EventRegistration[]>>(`${this.API}/${eventId}/registrations`);
+  }
+
+  checkRegistrationStatus(eventId: number): Observable<ApiResponse<boolean>> {
+    return this.http.get<ApiResponse<boolean>>(`${this.API}/${eventId}/registrations/status`);
+  }
+
+  getEventParticipantCount(eventId: number): Observable<ApiResponse<number>> {
+    return this.http.get<ApiResponse<number>>(`${this.API}/${eventId}/registrations/count`);
   }
 }

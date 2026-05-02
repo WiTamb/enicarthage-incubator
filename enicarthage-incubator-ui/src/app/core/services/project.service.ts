@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
 import { Project, ProjectRequest, ProjectStatus } from '../models/project.model';
+import { QuestionnaireAnswer } from '../models/session.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectService {
@@ -40,5 +41,9 @@ export class ProjectService {
 
   deleteProject(id: number): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(`${this.API}/${id}`);
+  }
+
+  getProjectAnswers(id: number): Observable<ApiResponse<QuestionnaireAnswer[]>> {
+    return this.http.get<ApiResponse<QuestionnaireAnswer[]>>(`${this.API}/${id}/questionnaire-answers`);
   }
 }

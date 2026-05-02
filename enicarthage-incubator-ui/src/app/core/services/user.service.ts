@@ -19,6 +19,10 @@ export class UserService {
     return this.http.put<ApiResponse<User>>(`${this.API}/api/profile`, data);
   }
 
+  completeProfile(data: any): Observable<ApiResponse<User>> {
+    return this.http.put<ApiResponse<User>>(`${this.API}/api/users/complete-profile`, data);
+  }
+
   getEvaluators(): Observable<ApiResponse<User[]>> {
     return this.http.get<ApiResponse<User[]>>(`${this.API}/api/evaluators`);
   }
@@ -43,5 +47,9 @@ export class UserService {
 
   deleteUser(id: number): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(`${this.API}/api/admin/users/${id}`);
+  }
+
+  inviteEvaluator(email: string): Observable<ApiResponse<User>> {
+    return this.http.post<ApiResponse<User>>(`${this.API}/api/admin/evaluators/invite`, { email });
   }
 }

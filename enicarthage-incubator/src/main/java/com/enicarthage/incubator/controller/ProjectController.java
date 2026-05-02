@@ -5,6 +5,7 @@ import com.enicarthage.incubator.dto.response.ApiResponse;
 import com.enicarthage.incubator.model.Project;
 import com.enicarthage.incubator.model.ProjectStatus;
 import com.enicarthage.incubator.service.ProjectService;
+import com.enicarthage.incubator.service.QuestionnaireService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final QuestionnaireService questionnaireService;
 
     // --- Étudiant : soumettre un projet ---
     @PostMapping
@@ -92,5 +94,15 @@ public class ProjectController {
     public ResponseEntity<ApiResponse<Void>> deleteProject(@PathVariable Long id) {
         projectService.deleteProject(id);
         return ResponseEntity.ok(ApiResponse.success("Projet supprimé", null));
+    }
+
+    // --- Admin/Évaluateur : récupérer le questionnaire d'un projet ---
+    @GetMapping("/{id}/questionnaire-answers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EVALUATOR')")
+    public ResponseEntity<ApiResponse<List<com.enicarthage.incubator.dto.response.QuestionnaireAnswerResponse>>> getProjectAnswers(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Réponses du candidat récupérées",
+                questionnaireService.getAnswersForProject(id)));
     }
 }

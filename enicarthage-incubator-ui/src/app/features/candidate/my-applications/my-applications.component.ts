@@ -205,11 +205,11 @@ export class MyApplicationsComponent implements OnInit {
   }
 
   statusMessage(app: Application): string {
-    if (app.status === 'PENDING') return '⏳ Votre candidature est en cours d\'examen';
-    if (app.status === 'REJECTED') return '❌ Votre candidature a été rejetée';
-    if (app.status === 'COMPLETED') return '🎉 Félicitations ! Vous avez terminé le parcours';
+    if (app.status === 'PENDING') return 'Votre candidature est en cours d\'examen';
+    if (app.status === 'REJECTED') return 'Votre candidature a été rejetée';
+    if (app.status === 'COMPLETED') return 'Félicitations ! Vous avez terminé le parcours';
     const acc = app.status.match(/ACCEPTED_ROUND_(\d+)/);
-    if (acc) return `🚀 Vous êtes au ${app.currentRoundName || 'Round ' + acc[1]}`;
+    if (acc) return `Vous êtes au ${app.currentRoundName || 'Round ' + acc[1]}`;
     const elim = app.status.match(/ELIMINATED_ROUND_(\d+)/);
     if (elim) return `Éliminé au Round ${elim[1]}`;
     return '';

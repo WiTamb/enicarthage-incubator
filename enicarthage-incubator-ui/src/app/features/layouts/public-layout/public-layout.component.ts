@@ -14,12 +14,8 @@ import { AuthService } from '../../../core/services/auth.service';
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
           <a routerLink="/" class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center">
-              <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-              </svg>
-            </div>
-            <span class="text-lg font-bold text-text-primary font-display">ENICarthage <span class="text-primary-600">Incubator</span></span>
+            <img src="assets/images/logo.png" alt="ENICarthage Incubator Logo" class="h-14 w-auto object-contain" />
+            <span class="text-xl font-bold text-text-primary font-display">ENICarthage <span class="text-primary-600">Incubator</span></span>
           </a>
 
           <!-- Nav links -->
@@ -58,11 +54,7 @@ import { AuthService } from '../../../core/services/auth.service';
           <!-- Brand -->
           <div class="col-span-1">
             <div class="flex items-center gap-2.5 mb-4">
-              <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-              </div>
+              <img src="assets/images/logo.png" alt="ENICarthage Incubator Logo" class="h-10 w-auto object-contain bg-white p-1 rounded-md" />
               <span class="text-lg font-bold font-display">ENICarthage Incubator</span>
             </div>
             <p class="text-slate-400 text-sm leading-relaxed">Transformer vos idées innovantes en startups à succès.</p>
@@ -102,5 +94,5 @@ import { AuthService } from '../../../core/services/auth.service';
   `
 })
 export class PublicLayoutComponent {
-  constructor(public auth: AuthService) {}
+  constructor(public auth: AuthService) { }
 }

@@ -52,6 +52,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean blocked = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean firstLogin = false;
+
     @Column(updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -63,6 +63,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
         log.error("Une erreur non gérée s'est produite : ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Une erreur interne s'est produite : " + ex.getMessage()));
+                .body(ApiResponse.error(ex.getMessage() != null ? ex.getMessage() : ex.toString()));
     }
 }

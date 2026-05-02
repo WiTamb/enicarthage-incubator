@@ -1,15 +1,18 @@
 package com.enicarthage.incubator.config;
 
-import com.enicarthage.incubator.model.Role;
-import com.enicarthage.incubator.model.User;
-import com.enicarthage.incubator.repository.UserRepository;
-import com.enicarthage.incubator.repository.SessionRepository;
-import com.enicarthage.incubator.repository.RoundRepository;
+import com.enicarthage.incubator.model.*;
+import com.enicarthage.incubator.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -19,103 +22,227 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
     private final RoundRepository roundRepository;
+    private final SessionQuestionRepository questionRepository;
+    private final ApplicationRepository applicationRepository;
+    private final ProjectRepository projectRepository;
+    private final QuestionnaireAnswerRepository answerRepository;
+    private final EvaluationRepository evaluationRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public void run(String... args) {
-        // Créer un admin par défaut s'il n'existe pas
-        if (!userRepository.existsByEmail("admin@enicarthage.tn")) {
-            User admin = User.builder()
-                    .firstName("Admin")
-                    .lastName("Enicarthage")
-                    .email("admin@enicarthage.tn")
-                    .password(passwordEncoder.encode("Admin@2024"))
-                    .role(Role.ADMIN)
-                    .enabled(true)
-                    .blocked(false)
-                    .build();
-            userRepository.save(admin);
-            log.info("✅ Compte admin créé : admin@enicarthage.tn / Admin@2024");
+        if (sessionRepository.count() > 0) {
+            log.info("ℹ️ Données de test déjà présentes. Aucune action nécessaire.");
+            return;
         }
 
-        // Créer un évaluateur par défaut
-        if (!userRepository.existsByEmail("evaluateur@enicarthage.tn")) {
-            User evaluator = User.builder()
-                    .firstName("Evaluateur")
-                    .lastName("Incubator")
-                    .email("evaluateur@enicarthage.tn")
-                    .password(passwordEncoder.encode("Eval@2024"))
-                    .role(Role.EVALUATOR)
-                    .enabled(true)
-                    .blocked(false)
-                    .build();
-            userRepository.save(evaluator);
-            log.info("✅ Compte évaluateur créé : evaluateur@enicarthage.tn / Eval@2024");
-        }
+        log.info("🌱 Initialisation du jeu de données complet et cohérent...");
+        
+        // 1. UTILISATEURS
+        User admin = createUser("Admin", "Enicarthage", "admin@enicarthage.tn", Role.ADMIN, null);
+        
+        User evalTech = createUser("Sami", "Gharbi", "sami.tech@enicarthage.tn", Role.EVALUATOR, null);
+        User evalBiz = createUser("Amira", "Trabelsi", "amira.biz@enicarthage.tn", Role.EVALUATOR, null);
+        User evalGen = createUser("Karim", "Benali", "karim.gen@enicarthage.tn", Role.EVALUATOR, null);
 
-        // Créer un étudiant de test
-        User student = null;
-        if (!userRepository.existsByEmail("etudiant@enicarthage.tn")) {
-            student = User.builder()
-                    .firstName("Ahmed")
-                    .lastName("Ben Ali")
-                    .email("etudiant@enicarthage.tn")
-                    .password(passwordEncoder.encode("Student@2024"))
-                    .role(Role.STUDENT)
-                    .specialty("Génie Informatique")
-                    .skills("Java, Spring Boot, React")
-                    .enabled(true)
-                    .blocked(false)
-                    .build();
-            student = userRepository.save(student);
-            log.info("✅ Compte étudiant créé : etudiant@enicarthage.tn / Student@2024");
-        } else {
-            student = userRepository.findByEmail("etudiant@enicarthage.tn").orElse(null);
-        }
+        User cand1 = createUser("Youssef", "Karray", "youssef@enicarthage.tn", Role.STUDENT, "Génie Logiciel");
+        User cand2 = createUser("Fatma", "Zahra", "fatma@enicarthage.tn", Role.STUDENT, "Génie Électrique");
+        User cand3 = createUser("Ahmed", "Mansour", "ahmed@enicarthage.tn", Role.STUDENT, "Génie Industriel");
+        User cand4 = createUser("Nour", "Bouzid", "nour@enicarthage.tn", Role.STUDENT, "Télécoms");
+        User cand5 = createUser("Omar", "Jebali", "omar@enicarthage.tn", Role.STUDENT, "Génie Civil");
+        User cand6 = createUser("Ines", "Gassoumi", "ines@enicarthage.tn", Role.STUDENT, "Mécatronique");
+        User cand7 = createUser("Ali", "Trabelsi", "ali@enicarthage.tn", Role.STUDENT, "Génie Logiciel");
+        User cand8 = createUser("Mariem", "Selmi", "mariem@enicarthage.tn", Role.STUDENT, "Réseaux");
 
-        // NOTE: Si vous avez des repositories pour Project et Program, vous pourriez injecter 
-        // ProjectRepository et ProgramRepository dans DataInitializer et ajouter :
-        /*
-        if (student != null && projectRepository.count() == 0) {
-            Project p1 = Project.builder().title("Plateforme E-learning").description("Une plateforme pour les cours en ligne").status(ProjectStatus.SUBMITTED).student(student).build();
-            Project p2 = Project.builder().title("Smart Agriculture").description("IoT pour l'agriculture").status(ProjectStatus.ACCEPTED).student(student).build();
-            projectRepository.saveAll(List.of(p1, p2));
-            log.info("✅ Projets de test créés");
+        // Set d'évaluateurs
+        Set<User> allEvals = Set.of(evalTech, evalBiz, evalGen);
+        Set<User> techEvals = Set.of(evalTech, evalGen);
+
+        // 2. SESSIONS & ROUNDS & QUESTIONS
+
+        // --- SESSION 1: TERMINEE (CLOSED) ---
+        Session closedSession = sessionRepository.save(Session.builder()
+                .name("Bootcamp IA & Big Data 2024")
+                .description("Un programme intensif pour les solutions basées sur l'Intelligence Artificielle.")
+                .startDate(LocalDate.now().minusYears(1))
+                .endDate(LocalDate.now().minusMonths(6))
+                .status(SessionStatus.CLOSED).build());
+
+        Round cRound1 = roundRepository.save(Round.builder().session(closedSession).name("Sélection sur Dossier")
+                .orderIndex(1).status(RoundStatus.COMPLETED).evaluators(allEvals).build());
+        Round cRound2 = roundRepository.save(Round.builder().session(closedSession).name("Pitch Final")
+                .orderIndex(2).status(RoundStatus.COMPLETED).evaluators(allEvals).build());
+
+        addQuestions(closedSession, Arrays.asList(
+                q("Nom de la solution IA", QuestionType.TEXT, true, 0, null),
+                q("Cas d'usage principal", QuestionType.TEXTAREA, true, 1, null)
+        ));
+
+        // --- SESSION 2: EN COURS (IN_PROGRESS) ---
+        Session activeSession = sessionRepository.save(Session.builder()
+                .name("Incubation GreenTech 2025")
+                .description("Accompagnement des startups à impact environnemental et énergétique.")
+                .startDate(LocalDate.now().minusMonths(2))
+                .endDate(LocalDate.now().plusMonths(3))
+                .status(SessionStatus.IN_PROGRESS).build());
+
+        Round aRound1 = roundRepository.save(Round.builder().session(activeSession).name("Évaluation du Concept")
+                .orderIndex(1).status(RoundStatus.COMPLETED).evaluators(allEvals).build());
+        Round aRound2 = roundRepository.save(Round.builder().session(activeSession).name("Prototype Technique")
+                .orderIndex(2).status(RoundStatus.ACTIVE).evaluators(techEvals).build());
+        Round aRound3 = roundRepository.save(Round.builder().session(activeSession).name("Go To Market")
+                .orderIndex(3).status(RoundStatus.UPCOMING).evaluators(Set.of(evalBiz)).build());
+
+        addQuestions(activeSession, Arrays.asList(
+                q("Titre du projet GreenTech", QuestionType.TEXT, true, 0, null),
+                q("Description de l'impact écologique", QuestionType.TEXTAREA, true, 1, null),
+                q("Technologie clé", QuestionType.RADIO, true, 2, "IoT, Matériaux, Énergie renouvelable, Autre"),
+                q("Lien Démo / Vidéo", QuestionType.VIDEO_URL, false, 3, null)
+        ));
+
+        // --- SESSION 3: OUVERTE (OPEN) ---
+        Session openSession = sessionRepository.save(Session.builder()
+                .name("FinTech Challenge Automne")
+                .description("Postulez avec vos idées innovantes pour la finance de demain.")
+                .startDate(LocalDate.now().minusDays(5))
+                .endDate(LocalDate.now().plusMonths(2))
+                .status(SessionStatus.OPEN).build());
+
+        Round oRound1 = roundRepository.save(Round.builder().session(openSession).name("Phase d'Inscription")
+                .orderIndex(1).status(RoundStatus.ACTIVE).evaluators(allEvals).build());
+
+        addQuestions(openSession, Arrays.asList(
+                q("Nom de la startup FinTech", QuestionType.TEXT, true, 0, null),
+                q("Problème résolu", QuestionType.TEXTAREA, true, 1, null),
+                q("Marché ciblé", QuestionType.CHECKBOX, true, 2, "B2B, B2C, B2B2C, Institutionnel")
+        ));
+
+
+        // 3. CANDIDATURES ET PROJETS
+
+        // ---- Candidats Session CLOSED ----
+        // Youssef: Gagnant (COMPLETED)
+        Application app1 = applicationRepository.save(Application.builder()
+                .session(closedSession).candidate(cand1).currentRound(cRound2).status(ApplicationStatus.COMPLETED).build());
+        Project proj1 = projectRepository.save(Project.builder()
+                .title("DataMind AI").description("Analyse prédictive pour l'industrie 4.0.")
+                .domain("IA & Industrie").githubUrl("https://github.com/youssef/datamind")
+                .owner(cand1).round(cRound2).status(ProjectStatus.ACCEPTED).submittedAt(LocalDate.now().minusMonths(7).atStartOfDay()).build());
+        
+        evaluationRepository.save(Evaluation.builder()
+                .project(proj1).evaluator(evalTech).round(cRound1)
+                .score(85).comment("Très bonne idée, équipe solide.").recommendation("Passe au round suivant.")
+                .build());
+        evaluationRepository.save(Evaluation.builder()
+                .project(proj1).evaluator(evalBiz).round(cRound2)
+                .score(92).comment("Excellent business plan. Marché porteur.").recommendation("Accepter le projet en incubation.")
+                .build());
+
+        // Fatma: Eliminée au Round 2
+        Application app2 = applicationRepository.save(Application.builder()
+                .session(closedSession).candidate(cand2).currentRound(cRound2).status(ApplicationStatus.ELIMINATED_ROUND_2).build());
+        Project proj2 = projectRepository.save(Project.builder()
+                .title("ChatBot HR").description("Assistant RH virtuel pour le recrutement.")
+                .domain("IA & RH").owner(cand2).round(cRound2).status(ProjectStatus.REJECTED).submittedAt(LocalDate.now().minusMonths(8).atStartOfDay()).build());
+        
+        evaluationRepository.save(Evaluation.builder()
+                .project(proj2).evaluator(evalGen).round(cRound1)
+                .score(70).comment("Projet intéressant mais manque de détails techniques.").recommendation("Passe au round suivant avec réserve.")
+                .build());
+        evaluationRepository.save(Evaluation.builder()
+                .project(proj2).evaluator(evalTech).round(cRound2)
+                .score(45).comment("L'architecture proposée n'est pas viable.").recommendation("Éliminer.")
+                .build());
+
+        // ---- Candidats Session IN_PROGRESS ----
+        List<SessionQuestion> greenQs = questionRepository.findBySessionIdOrderByOrderIndexAsc(activeSession.getId());
+
+        // Ahmed: Accepté au Round 2, Projet soumis, En cours de revue
+        Application app3 = applicationRepository.save(Application.builder()
+                .session(activeSession).candidate(cand3).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
+        answer(app3, greenQs.get(0), "SolarFlow"); answer(app3, greenQs.get(1), "Optimisation des panneaux solaires.");
+        answer(app3, greenQs.get(2), "Énergie renouvelable");
+        Project proj3 = projectRepository.save(Project.builder()
+                .title("SolarFlow").description("Tableau de bord de monitoring solaire.")
+                .domain("Énergie").githubUrl("https://github.com/ahmed/solarflow")
+                .owner(cand3).round(aRound2).status(ProjectStatus.UNDER_REVIEW).submittedAt(LocalDate.now().minusDays(2).atStartOfDay()).build());
+        
+        evaluationRepository.save(Evaluation.builder()
+                .project(proj3).evaluator(evalTech).round(aRound1)
+                .score(80).comment("Bon potentiel technique, le MVP est clair.").recommendation("Accepter pour la phase de prototypage.")
+                .build());
+
+        // Nour: Accepté au Round 2, Projet soumis, Déjà accepté
+        Application app4 = applicationRepository.save(Application.builder()
+                .session(activeSession).candidate(cand4).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
+        answer(app4, greenQs.get(0), "EcoTrack"); answer(app4, greenQs.get(1), "Suivi de la consommation carbone personnelle.");
+        answer(app4, greenQs.get(2), "Autre");
+        Project proj4 = projectRepository.save(Project.builder()
+                .title("EcoTrack App").description("App mobile de tracking carbone.")
+                .domain("Mobile & Écologie").owner(cand4).round(aRound2).status(ProjectStatus.ACCEPTED).submittedAt(LocalDate.now().minusDays(5).atStartOfDay()).build());
+        
+        evaluationRepository.save(Evaluation.builder()
+                .project(proj4).evaluator(evalBiz).round(aRound1)
+                .score(88).comment("Business model très clair et acquisition utilisateur bien pensée.").recommendation("Accepter.")
+                .build());
+
+        // Omar: Accepté au Round 2, Projet NON encore soumis
+        Application app5 = applicationRepository.save(Application.builder()
+                .session(activeSession).candidate(cand5).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
+        answer(app5, greenQs.get(0), "WindTech"); answer(app5, greenQs.get(1), "Micro-éoliennes urbaines.");
+        answer(app5, greenQs.get(2), "Énergie renouvelable");
+
+        // Ines: Eliminée au Round 1
+        Application app6 = applicationRepository.save(Application.builder()
+                .session(activeSession).candidate(cand6).currentRound(aRound1).status(ApplicationStatus.ELIMINATED_ROUND_1).build());
+        answer(app6, greenQs.get(0), "GreenPlast"); answer(app6, greenQs.get(1), "Recyclage plastique.");
+        
+        // ---- Candidats Session OPEN ----
+        List<SessionQuestion> finQs = questionRepository.findBySessionIdOrderByOrderIndexAsc(openSession.getId());
+
+        // Ali: En attente (vient de postuler)
+        Application app7 = applicationRepository.save(Application.builder()
+                .session(openSession).candidate(cand7).currentRound(null).status(ApplicationStatus.PENDING).build());
+        answer(app7, finQs.get(0), "PaySmart"); answer(app7, finQs.get(1), "Paiement sans contact par QR Code innovant.");
+        answer(app7, finQs.get(2), "B2C, B2B");
+
+        // Mariem: Rejetée directement (dossier invalide)
+        Application app8 = applicationRepository.save(Application.builder()
+                .session(openSession).candidate(cand8).currentRound(null).status(ApplicationStatus.REJECTED).build());
+        answer(app8, finQs.get(0), "Test App"); answer(app8, finQs.get(1), "Rien pour l'instant");
+
+        log.info("✅ Jeu de données de test créé avec succès !");
+        log.info("📧 Comptes de test:");
+        log.info("   - Admin: admin@enicarthage.tn");
+        log.info("   - Évaluateurs: sami.tech@enicarthage.tn, amira.biz@enicarthage.tn");
+        log.info("   - Candidats: youssef@enicarthage.tn (Terminé), ahmed@enicarthage.tn (Round 2 actif), ali@enicarthage.tn (En attente)");
+        log.info("🔑 Mot de passe pour tous: Admin@2024 / Eval@2024 / Student@2024");
+    }
+
+    private User createUser(String first, String last, String email, Role role, String specialty) {
+        if (!userRepository.existsByEmail(email)) {
+            String pwd = role == Role.ADMIN ? "Admin@2024" : (role == Role.EVALUATOR ? "Eval@2024" : "Student@2024");
+            return userRepository.save(User.builder()
+                    .firstName(first).lastName(last).email(email)
+                    .password(passwordEncoder.encode(pwd))
+                    .role(role).specialty(specialty).enabled(true).blocked(false).build());
         }
-        */
-        // Créer une session de test si aucune n'existe
-        if (sessionRepository.count() == 0) {
-            com.enicarthage.incubator.model.Session testSession = com.enicarthage.incubator.model.Session.builder()
-                    .name("Incubation 2024 - Sprint Automne")
-                    .description("La session phare pour les projets innovants de l'ENICarthage. Rejoignez-nous pour transformer vos idées en startups.")
-                    .startDate(java.time.LocalDate.now())
-                    .endDate(java.time.LocalDate.now().plusMonths(3))
-                    .status(com.enicarthage.incubator.model.SessionStatus.OPEN)
-                    .build();
-            
-            testSession = sessionRepository.save(testSession);
-            
-            // Ajouter 2 rounds
-            com.enicarthage.incubator.model.Round r1 = com.enicarthage.incubator.model.Round.builder()
-                    .session(testSession)
-                    .name("Round 1 : Pitch Initial")
-                    .description("Présentation du concept global")
-                    .orderIndex(1)
-                    .status(com.enicarthage.incubator.model.RoundStatus.ACTIVE)
-                    .build();
-            
-            com.enicarthage.incubator.model.Round r2 = com.enicarthage.incubator.model.Round.builder()
-                    .session(testSession)
-                    .name("Round 2 : MVP & Technique")
-                    .description("Démonstration de la solution technique")
-                    .orderIndex(2)
-                    .status(com.enicarthage.incubator.model.RoundStatus.UPCOMING)
-                    .build();
-            
-            roundRepository.save(r1);
-            roundRepository.save(r2);
-            
-            log.info("✅ Session de test créée avec 2 rounds");
-        }
+        return userRepository.findByEmail(email).orElseThrow();
+    }
+
+    private void answer(Application app, SessionQuestion question, String text) {
+        answerRepository.save(QuestionnaireAnswer.builder()
+                .application(app).question(question).answer(text).build());
+    }
+
+    private SessionQuestion q(String label, QuestionType type, boolean required, int idx, String options) {
+        return SessionQuestion.builder()
+                .label(label).type(type).required(required).orderIndex(idx).options(options).build();
+    }
+
+    private void addQuestions(Session session, List<SessionQuestion> questions) {
+        questions.forEach(q -> q.setSession(session));
+        questionRepository.saveAll(questions);
     }
 }

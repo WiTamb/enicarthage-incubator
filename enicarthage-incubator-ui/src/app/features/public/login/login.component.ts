@@ -10,11 +10,17 @@ import { LoginRequest } from '../../../core/models/auth.model';
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
-    <div class="min-h-screen flex">
+    <div class="min-h-screen flex relative">
+      <!-- Back to home button -->
+      <a routerLink="/" class="absolute top-6 left-6 z-10 flex items-center gap-2 text-white/80 hover:text-white transition-colors bg-black/20 hover:bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full font-medium text-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Retour à l'accueil
+      </a>
+
       <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 via-primary-700 to-navy-900 relative items-center justify-center p-12">
         <div class="relative text-center max-w-md">
-          <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-8">
-            <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <div class="bg-white rounded-[2.5rem] p-10 shadow-2xl mx-auto mb-12 max-w-[360px] flex items-center justify-center ring-8 ring-white/10 transition-transform duration-500 hover:-translate-y-2">
+            <img src="assets/images/logo2.png" alt="Incubateur ENICarthage" class="w-full h-auto object-contain drop-shadow-sm rounded-xl">
           </div>
           <h2 class="text-3xl font-bold text-white font-display mb-4">Bienvenue</h2>
           <p class="text-primary-100 text-lg">"L'innovation distingue un leader d'un suiveur."</p>

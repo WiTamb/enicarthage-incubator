@@ -22,6 +22,8 @@ export interface Project {
   owner: User;
   program?: Program;
   round?: Round;
+  evaluations?: any[];
+  githubUrl?: string;
 }
 
 export interface ProjectRequest {

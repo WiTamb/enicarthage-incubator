@@ -56,3 +56,24 @@ export interface Application {
   appliedAt: string;
   updatedAt: string;
 }
+
+export type QuestionType = 'TEXT' | 'TEXTAREA' | 'FILE' | 'VIDEO_URL' | 'RADIO' | 'CHECKBOX';
+
+export interface SessionQuestion {
+  id: number;
+  sessionId: number;
+  label: string;
+  type: QuestionType;
+  options?: string; // comma-separated for RADIO/CHECKBOX
+  required: boolean;
+  orderIndex: number;
+}
+
+export interface QuestionnaireAnswer {
+  id: number;
+  applicationId: number;
+  question: SessionQuestion;
+  answer: string;
+}
+
+

@@ -7,6 +7,9 @@ import com.enicarthage.incubator.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import com.enicarthage.incubator.exception.EmailAlreadyExistsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.UUID;
 import java.util.List;
 
 @Service
@@ -14,6 +17,8 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -59,5 +64,47 @@ public class UserService {
     public void deleteUser(Long id) {
         User user = getUserById(id);
         userRepository.delete(user);
+    }
+
+    public User inviteEvaluator(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new EmailAlreadyExistsException("Un utilisateur avec cet email existe déjà.");
+        }
+
+        String tempPassword = UUID.randomUUID().toString().substring(0, 8); // e.g., "a1b2c3d4"
+
+        User evaluator = User.builder()
+                .email(email)
+                .firstName("Évaluateur")
+                .lastName("Invité")
+                .password(passwordEncoder.encode(tempPassword))
+                .role(Role.EVALUATOR)
+                .firstLogin(true)
+                .build();
+
+        userRepository.save(evaluator);
+        System.out.println("=========================================================");
+        System.out.println("NOUVEL ÉVALUATEUR INVITÉ !");
+        System.out.println("Email : " + email);
+        System.out.println("Mot de passe temporaire : " + tempPassword);
+        System.out.println("=========================================================");
+        emailService.sendEvaluatorInvitation(email, tempPassword);
+        return evaluator;
+    }
+
+    public User completeFirstLogin(String email, String newPassword, String firstName, String lastName, String specialty) {
+        User user = getUserByEmail(email);
+        if (!user.isFirstLogin()) {
+            throw new IllegalStateException("Le profil a déjà été complété.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        if (specialty != null && !specialty.isBlank()) {
+            user.setSpecialty(specialty);
+        }
+        user.setFirstLogin(false);
+        return userRepository.save(user);
     }
 }

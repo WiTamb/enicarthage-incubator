@@ -11,6 +11,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import com.enicarthage.incubator.dto.request.InviteRequest;
+import com.enicarthage.incubator.dto.request.CompleteProfileRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -35,11 +38,32 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Profil mis à jour", updated));
     }
 
+    @PutMapping("/users/complete-profile")
+    public ResponseEntity<ApiResponse<User>> completeProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody CompleteProfileRequest request) {
+        User user = userService.completeFirstLogin(
+                userDetails.getUsername(),
+                request.getPassword(),
+                request.getFirstName(),
+                request.getLastName(),
+                request.getSpecialty()
+        );
+        return ResponseEntity.ok(ApiResponse.success("Profil complété avec succès", user));
+    }
+
     // --- Admin : gestion des utilisateurs ---
     @GetMapping("/admin/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
         return ResponseEntity.ok(ApiResponse.success("Liste des utilisateurs", userService.getAllUsers()));
+    }
+
+    @PostMapping("/admin/evaluators/invite")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<User>> inviteEvaluator(@Valid @RequestBody InviteRequest request) {
+        User evaluator = userService.inviteEvaluator(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success("Évaluateur invité avec succès", evaluator));
     }
 
     @GetMapping("/evaluators")

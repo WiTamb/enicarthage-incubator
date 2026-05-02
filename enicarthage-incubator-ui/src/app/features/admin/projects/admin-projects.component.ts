@@ -31,7 +31,7 @@ import { Project, ProjectStatus } from '../../../core/models/project.model';
             @for (p of colProjects(col.status); track p.id) {
               <div class="card p-4 cursor-pointer" (click)="selected = p">
                 <h4 class="font-medium text-sm mb-1">{{ p.title }}</h4>
-                <p class="text-xs text-text-muted mb-2">{{ p.owner?.firstName }} {{ p.owner?.lastName }}</p>
+                <p class="text-xs text-text-muted mb-2">{{ p.owner.firstName }} {{ p.owner.lastName }}</p>
                 <p class="text-xs text-text-muted">{{ p.submittedAt | date:'dd/MM' }}</p>
               </div>
             }
@@ -50,7 +50,7 @@ import { Project, ProjectStatus } from '../../../core/models/project.model';
         </div>
         <p class="text-sm text-text-secondary mb-4">{{ selected.description }}</p>
         <div class="text-sm space-y-2 mb-6">
-          <p><span class="text-text-muted">Candidat:</span> {{ selected.owner?.firstName }} {{ selected.owner?.lastName }}</p>
+          <p><span class="text-text-muted">Candidat:</span> {{ selected.owner.firstName }} {{ selected.owner.lastName }}</p>
           <p><span class="text-text-muted">Domaine:</span> {{ selected.domain || '—' }}</p>
           <p><span class="text-text-muted">Programme:</span> {{ selected.program?.name || '—' }}</p>
         </div>
@@ -95,3 +95,4 @@ export class AdminProjectsComponent implements OnInit {
     this.projectService.updateStatus(this.selected.id, this.newStatus).subscribe(() => { this.selected = null; this.load(); });
   }
 }
+

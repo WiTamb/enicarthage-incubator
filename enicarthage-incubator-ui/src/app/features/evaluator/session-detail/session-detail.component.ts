@@ -216,8 +216,8 @@ export class SessionDetailComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.isAdmin = this.auth.userRole() === Role.ADMIN;
-    this.basePath = this.router.url.startsWith('/admin') ? '/admin' : '/evaluator';
+    this.isAdmin = this.router.url.startsWith('/admin');
+    this.basePath = this.isAdmin ? '/admin' : '/evaluator';
     const id = +this.route.snapshot.paramMap.get('id')!;
     this.loadSession(id);
     this.loadEvaluators();

@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SessionService } from '../../../core/services/session.service';
-import { Session, SessionStatus } from '../../../core/models/session.model';
+import { QuestionnaireService } from '../../../core/services/questionnaire.service';
+import { Session, SessionStatus, SessionQuestion, QuestionType } from '../../../core/models/session.model';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
@@ -17,7 +18,7 @@ import { Role } from '../../../core/models/user.model';
     <!-- ==================== ADMIN VIEW ==================== -->
     @if (isAdmin) {
       <div class="flex items-center justify-between mb-8">
-        <div><h1 class="page-title">Sessions d'Incubation</h1><p class="page-subtitle">Gerez les sessions d'incubation avec leurs rounds.</p></div>
+        <div><h1 class="page-title">Sessions d'Incubation</h1><p class="page-subtitle">Gérez les sessions d'incubation avec leurs rounds et questionnaires.</p></div>
         <button (click)="openCreate()" class="btn-primary btn-sm">+ Nouvelle session</button>
       </div>
 
@@ -33,12 +34,16 @@ import { Role } from '../../../core/models/user.model';
                 <td class="px-6 py-4 font-medium">{{ s.name }}</td>
                 <td class="px-6 py-4 text-sm text-text-secondary">{{ s.startDate | date:'dd/MM' }} - {{ s.endDate | date:'dd/MM/yy' }}</td>
                 <td class="px-6 py-4"><span [class]="statusBadge(s.status)">{{ statusLabel(s.status) }}</span></td>
-                <td class="px-6 py-4 text-sm">{{ s.rounds?.length || 0 }}</td>
+                <td class="px-6 py-4 text-sm">{{ s.rounds.length || 0 }}</td>
                 <td class="px-6 py-4 text-sm">{{ s.totalApplicants || 0 }}</td>
                 <td class="px-6 py-4">
-                  <div class="flex gap-1">
-                    <a [routerLink]="['/admin/sessions', s.id]" class="btn-ghost btn-sm text-xs">Details</a>
+                  <div class="flex gap-1 flex-wrap">
+                    <a [routerLink]="['/admin/sessions', s.id]" class="btn-ghost btn-sm text-xs">Détails</a>
                     <button (click)="openEdit(s)" class="btn-ghost btn-sm text-xs">Modifier</button>
+                    <button (click)="openQuestionnaire(s)" class="btn-ghost btn-sm text-xs text-primary-600 flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                      Questionnaire
+                    </button>
                     <button (click)="delTarget = s" class="btn-ghost btn-sm text-xs text-danger-500">Suppr</button>
                   </div>
                 </td>
@@ -51,13 +56,13 @@ import { Role } from '../../../core/models/user.model';
       <!-- Admin: Create/Edit slide-over -->
       @if (showForm) {
         <div class="overlay" (click)="showForm = false"></div>
-        <div class="slide-over p-8">
+        <div class="slide-over p-8 overflow-y-auto" style="max-height:100vh">
           <h2 class="text-xl font-bold mb-6">{{ editId ? 'Modifier' : 'Nouvelle' }} session</h2>
           <form (ngSubmit)="save()" class="space-y-5">
             <div class="form-group"><label class="label">Nom</label><input class="input" [(ngModel)]="fd.name" name="name" required></div>
             <div class="form-group"><label class="label">Description</label><textarea class="input min-h-[100px]" [(ngModel)]="fd.description" name="desc"></textarea></div>
             <div class="grid grid-cols-2 gap-4">
-              <div class="form-group"><label class="label">Date debut</label><input type="date" class="input" [(ngModel)]="fd.startDate" name="sd" required></div>
+              <div class="form-group"><label class="label">Date début</label><input type="date" class="input" [(ngModel)]="fd.startDate" name="sd" required></div>
               <div class="form-group"><label class="label">Date fin</label><input type="date" class="input" [(ngModel)]="fd.endDate" name="ed" required></div>
             </div>
             <div class="form-group">
@@ -65,7 +70,7 @@ import { Role } from '../../../core/models/user.model';
               <select class="input" [(ngModel)]="fd.status" name="st">
                 <option value="OPEN">Ouvert</option>
                 <option value="IN_PROGRESS">En cours</option>
-                <option value="CLOSED">Termine</option>
+                <option value="CLOSED">Terminé</option>
               </select>
             </div>
 
@@ -83,11 +88,11 @@ import { Role } from '../../../core/models/user.model';
                       <select class="input bg-white text-sm" [(ngModel)]="r.status" [name]="'rst-' + $index">
                         <option value="UPCOMING">A venir</option>
                         <option value="ACTIVE">En cours</option>
-                        <option value="COMPLETED">Termine</option>
+                        <option value="COMPLETED">Terminé</option>
                       </select>
                     </div>
                     <div class="space-y-2">
-                      <label class="text-[10px] font-bold text-text-muted uppercase">Evaluateurs</label>
+                      <label class="text-[10px] font-bold text-text-muted uppercase">Évaluateurs</label>
                       <div class="flex flex-wrap gap-2">
                         @for (ev of allEvaluators; track ev.id) {
                           <label class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100 cursor-pointer hover:border-primary-300 transition-all">
@@ -110,10 +115,84 @@ import { Role } from '../../../core/models/user.model';
         </div>
       }
 
+      <!-- Admin: Questionnaire Builder -->
+      @if (showQuestionnaire && questionnaireTarget) {
+        <div class="overlay" (click)="closeQuestionnaire()"></div>
+        <div class="slide-over p-8 w-full max-w-2xl overflow-y-auto" style="max-height:100vh">
+          <div class="flex items-start justify-between mb-6">
+            <div>
+              <h2 class="text-xl font-bold text-text-primary">Questionnaire</h2>
+              <p class="text-sm text-text-muted mt-1">{{ questionnaireTarget.name }}</p>
+            </div>
+            <button (click)="closeQuestionnaire()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-text-muted">✕</button>
+          </div>
+
+          <div class="space-y-4 mb-6">
+            @for (q of editQuestions; track q; let i = $index) {
+              <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100 relative">
+                <button type="button" (click)="removeQuestion(i)" class="absolute top-3 right-3 text-text-muted hover:text-danger-500 text-xs font-bold">✕</button>
+
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                  <div class="col-span-2 form-group">
+                    <label class="label text-[10px]">Question {{ i + 1 }}</label>
+                    <input class="input bg-white" [(ngModel)]="q.label" [name]="'label-' + i" placeholder="Libellé de la question..." required>
+                  </div>
+                  <div class="form-group">
+                    <label class="label text-[10px]">Type de réponse</label>
+                    <select class="input bg-white text-sm" [(ngModel)]="q.type" [name]="'type-' + i">
+                      <option value="TEXT">Texte court</option>
+                      <option value="TEXTAREA">Texte long</option>
+                      <option value="FILE">Fichier</option>
+                      <option value="VIDEO_URL">Lien vidéo</option>
+                      <option value="RADIO">Choix unique</option>
+                      <option value="CHECKBOX">Choix multiple</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex items-end pb-1">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" [(ngModel)]="q.required" [name]="'req-' + i" class="w-4 h-4 rounded text-primary-600">
+                      <span class="text-sm text-text-secondary">Obligatoire</span>
+                    </label>
+                  </div>
+                </div>
+
+                @if (q.type === 'RADIO' || q.type === 'CHECKBOX') {
+                  <div class="form-group">
+                    <label class="label text-[10px]">Options (séparées par des virgules)</label>
+                    <input class="input bg-white text-sm" [(ngModel)]="q.options" [name]="'opts-' + i" placeholder="Option 1, Option 2, Option 3">
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="flex gap-3 mb-6">
+            <button type="button" (click)="addQuestion()" class="btn-outline btn-sm flex-1">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Ajouter une question
+            </button>
+          </div>
+
+          @if (questionnaireError) {
+            <div class="p-4 bg-danger-50 border border-danger-100 rounded-xl text-sm text-danger-600 mb-4">{{ questionnaireError }}</div>
+          }
+          @if (questionnaireSuccess) {
+            <div class="p-4 bg-success-50 border border-success-100 rounded-xl text-sm text-success-600 mb-4 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Questionnaire sauvegardé avec succès !
+            </div>
+          }
+
+          <button (click)="saveQuestionnaire()" class="btn-primary btn-md w-full" [disabled]="savingQuestionnaire">
+            {{ savingQuestionnaire ? 'Sauvegarde...' : 'Sauvegarder le questionnaire' }}
+          </button>
+        </div>
+      }
+
       <app-confirm-modal
         [open]="!!delTarget"
         title="Supprimer cette session ?"
-        [message]="'La session ' + (delTarget?.name || '') + ' sera supprimee.'"
+        [message]="'La session ' + (delTarget?.name || '') + ' sera supprimée.'"
         confirmText="Supprimer"
         type="danger"
         (confirm)="doDelete()"
@@ -125,14 +204,14 @@ import { Role } from '../../../core/models/user.model';
     @if (!isAdmin) {
       <div class="mb-8">
         <h1 class="page-title">Mes Sessions</h1>
-        <p class="page-subtitle">Sessions auxquelles vous etes assigne pour evaluer.</p>
+        <p class="page-subtitle">Sessions auxquelles vous êtes assigné pour évaluer.</p>
       </div>
 
       @if (sessions.length === 0) {
         <div class="card p-12 text-center">
           <svg class="w-16 h-16 text-slate-200 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-          <p class="text-text-secondary mb-2">Aucune session ne vous est assignee.</p>
-          <p class="text-xs text-text-muted">Contactez l'administrateur pour etre assigne a une session.</p>
+          <p class="text-text-secondary mb-2">Aucune session ne vous est assignée.</p>
+          <p class="text-xs text-text-muted">Contactez l'administrateur pour être assigné à une session.</p>
         </div>
       } @else {
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -154,7 +233,7 @@ import { Role } from '../../../core/models/user.model';
 
                 <!-- Rounds assigned to this evaluator -->
                 <div class="space-y-3">
-                  <h4 class="text-[10px] font-bold text-text-muted uppercase tracking-widest">Vos rounds a evaluer</h4>
+                  <h4 class="text-[10px] font-bold text-text-muted uppercase tracking-widest">Vos rounds à évaluer</h4>
                   @for (r of s.rounds; track r.id; let i = $index) {
                     <div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-primary-200 transition-all">
                       <div class="flex items-center gap-3">
@@ -164,7 +243,7 @@ import { Role } from '../../../core/models/user.model';
                         </div>
                         <div>
                           <p class="text-sm font-medium text-text-primary">{{ r.name }}</p>
-                          <p class="text-[10px] text-text-muted">{{ r.status === 'ACTIVE' ? 'En cours' : r.status === 'COMPLETED' ? 'Termine' : 'A venir' }}</p>
+                          <p class="text-[10px] text-text-muted">{{ r.status === 'ACTIVE' ? 'En cours' : r.status === 'COMPLETED' ? 'Terminé' : 'A venir' }}</p>
                         </div>
                       </div>
                       <a [routerLink]="['/evaluator/sessions', s.id, 'rounds', r.id, 'applicants']"
@@ -173,16 +252,16 @@ import { Role } from '../../../core/models/user.model';
                       </a>
                     </div>
                   }
-                  @if (!s.rounds?.length) {
-                    <p class="text-xs text-text-muted text-center py-4">Aucun round assigne.</p>
+                  @if (!s.rounds.length) {
+                    <p class="text-xs text-text-muted text-center py-4">Aucun round assigné.</p>
                   }
                 </div>
 
                 <!-- Quick stats -->
                 <div class="flex items-center gap-4 mt-4 pt-4 border-t border-slate-50">
-                  <span class="text-xs text-text-muted">{{ s.rounds?.length || 0 }} round(s)</span>
+                  <span class="text-xs text-text-muted">{{ s.rounds.length || 0 }} round(s)</span>
                   <span class="text-xs text-text-muted">{{ s.totalApplicants || 0 }} candidat(s)</span>
-                  <a [routerLink]="['/evaluator/sessions', s.id]" class="text-xs text-primary-600 font-medium ml-auto hover:underline">Voir details</a>
+                  <a [routerLink]="['/evaluator/sessions', s.id]" class="text-xs text-primary-600 font-medium ml-auto hover:underline">Voir détails</a>
                 </div>
               </div>
             </div>
@@ -202,16 +281,25 @@ export class EvalSessionsComponent implements OnInit {
   basePath = '/evaluator';
   isAdmin = false;
 
+  // Questionnaire builder state
+  showQuestionnaire = false;
+  questionnaireTarget: Session | null = null;
+  editQuestions: Partial<SessionQuestion>[] = [];
+  savingQuestionnaire = false;
+  questionnaireError = '';
+  questionnaireSuccess = false;
+
   constructor(
     private svc: SessionService,
+    private questionnaireSvc: QuestionnaireService,
     private router: Router,
     private auth: AuthService,
     private userSvc: UserService
   ) {}
 
   ngOnInit() {
-    this.isAdmin = this.auth.userRole() === Role.ADMIN;
-    this.basePath = this.router.url.startsWith('/admin') ? '/admin' : '/evaluator';
+    this.isAdmin = this.router.url.startsWith('/admin');
+    this.basePath = this.isAdmin ? '/admin' : '/evaluator';
     this.load();
   }
 
@@ -298,12 +386,70 @@ export class EvalSessionsComponent implements OnInit {
     }
   }
 
+  // ---- Questionnaire Builder ----
+  openQuestionnaire(s: Session) {
+    this.questionnaireTarget = s;
+    this.showQuestionnaire = true;
+    this.questionnaireError = '';
+    this.questionnaireSuccess = false;
+    this.editQuestions = [];
+
+    this.questionnaireSvc.getQuestionnaire(s.id).subscribe(r => {
+      if (r.data && r.data.length > 0) {
+        this.editQuestions = r.data.map(q => ({ ...q }));
+      }
+    });
+  }
+
+  closeQuestionnaire() {
+    this.showQuestionnaire = false;
+    this.questionnaireTarget = null;
+  }
+
+  addQuestion() {
+    this.editQuestions.push({
+      label: '',
+      type: 'TEXT' as QuestionType,
+      required: true,
+      orderIndex: this.editQuestions.length,
+      options: ''
+    });
+  }
+
+  removeQuestion(index: number) {
+    this.editQuestions.splice(index, 1);
+  }
+
+  saveQuestionnaire() {
+    if (!this.questionnaireTarget) return;
+    const invalid = this.editQuestions.filter(q => !q.label?.trim());
+    if (invalid.length > 0) {
+      this.questionnaireError = 'Veuillez remplir le libellé de toutes les questions.';
+      return;
+    }
+
+    this.savingQuestionnaire = true;
+    this.questionnaireError = '';
+    this.questionnaireSvc.saveQuestionnaire(this.questionnaireTarget.id, this.editQuestions).subscribe({
+      next: () => {
+        this.savingQuestionnaire = false;
+        this.questionnaireSuccess = true;
+        setTimeout(() => this.closeQuestionnaire(), 1500);
+      },
+      error: (err: any) => {
+        this.savingQuestionnaire = false;
+        this.questionnaireError = err.error?.message || 'Erreur lors de la sauvegarde.';
+      }
+    });
+  }
+
   // ---- Shared helpers ----
   statusBadge(s: SessionStatus) {
     return s === 'OPEN' ? 'badge-success' : s === 'IN_PROGRESS' ? 'badge-primary' : 'badge-slate';
   }
 
   statusLabel(s: SessionStatus) {
-    return s === 'OPEN' ? 'Ouvert' : s === 'IN_PROGRESS' ? 'En cours' : 'Termine';
+    return s === 'OPEN' ? 'Ouvert' : s === 'IN_PROGRESS' ? 'En cours' : 'Terminé';
   }
 }
+

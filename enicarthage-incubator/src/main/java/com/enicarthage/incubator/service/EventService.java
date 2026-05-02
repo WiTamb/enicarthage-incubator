@@ -48,6 +48,8 @@ public class EventService {
         event.setEventDate(updatedData.getEventDate());
         event.setVideoUrl(updatedData.getVideoUrl());
         event.setPublished(updatedData.isPublished());
+        event.setRegistrationEnabled(updatedData.isRegistrationEnabled());
+        event.setMaxParticipants(updatedData.getMaxParticipants());
 
         if (image != null && !image.isEmpty()) {
             String imagePath = fileStorageService.store(image, "events");
