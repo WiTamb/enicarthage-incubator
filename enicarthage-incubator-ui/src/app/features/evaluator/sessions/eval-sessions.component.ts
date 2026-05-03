@@ -39,7 +39,9 @@ import { Role } from '../../../core/models/user.model';
                 <td class="px-6 py-4">
                   <div class="flex gap-1 flex-wrap">
                     <a [routerLink]="['/admin/sessions', s.id]" class="btn-ghost btn-sm text-xs">Détails</a>
-                    <button (click)="openEdit(s)" class="btn-ghost btn-sm text-xs">Modifier</button>
+                    @if (s.status !== 'CLOSED') {
+                      <button (click)="openEdit(s)" class="btn-ghost btn-sm text-xs">Modifier</button>
+                    }
                     <button (click)="openQuestionnaire(s)" class="btn-ghost btn-sm text-xs text-primary-600 flex items-center gap-1">
                       <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                       Questionnaire
@@ -234,7 +236,7 @@ import { Role } from '../../../core/models/user.model';
                 <!-- Rounds assigned to this evaluator -->
                 <div class="space-y-3">
                   <h4 class="text-[10px] font-bold text-text-muted uppercase tracking-widest">Vos rounds à évaluer</h4>
-                  @for (r of s.rounds; track r.id; let i = $index) {
+                  @for (r of getMyRounds(s); track r.id; let i = $index) {
                     <div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-primary-200 transition-all">
                       <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
@@ -252,7 +254,7 @@ import { Role } from '../../../core/models/user.model';
                       </a>
                     </div>
                   }
-                  @if (!s.rounds.length) {
+                  @if (!getMyRounds(s).length) {
                     <p class="text-xs text-text-muted text-center py-4">Aucun round assigné.</p>
                   }
                 </div>
@@ -450,6 +452,12 @@ export class EvalSessionsComponent implements OnInit {
 
   statusLabel(s: SessionStatus) {
     return s === 'OPEN' ? 'Ouvert' : s === 'IN_PROGRESS' ? 'En cours' : 'Terminé';
+  }
+
+  getMyRounds(s: Session) {
+    if (this.auth.userRole() !== Role.ADMIN) return s.rounds; // Backend already filtered them
+    const myEmail = this.auth.currentUser()?.email || '';
+    return s.rounds.filter(r => r.evaluators?.some(e => e.email === myEmail));
   }
 }
 

@@ -232,7 +232,12 @@ export class SessionDetailComponent implements OnInit {
   loadSession(id: number) {
     this.sessionSvc.getSessionById(id).subscribe(r => {
       this.session = r.data || null;
-      this.rounds = (r.data?.rounds || []).sort((a, b) => a.orderIndex - b.orderIndex);
+      let allRounds = r.data?.rounds || [];
+      if (!this.isAdmin && this.auth.userRole() === 'ADMIN') {
+        const myEmail = this.auth.currentUser()?.email || '';
+        allRounds = allRounds.filter(rnd => rnd.evaluators?.some(e => e.email === myEmail));
+      }
+      this.rounds = allRounds.sort((a, b) => a.orderIndex - b.orderIndex);
     });
   }
 

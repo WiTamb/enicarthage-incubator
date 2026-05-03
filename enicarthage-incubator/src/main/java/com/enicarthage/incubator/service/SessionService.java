@@ -86,6 +86,10 @@ public class SessionService {
         Session session = sessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session non trouvée"));
         
+        if (session.getStatus() == com.enicarthage.incubator.model.SessionStatus.CLOSED) {
+            throw new IllegalStateException("Une session fermée ne peut plus être modifiée.");
+        }
+        
         session.setName(request.getName());
         session.setDescription(request.getDescription());
         session.setStartDate(request.getStartDate());
@@ -94,12 +98,45 @@ public class SessionService {
         
         Session saved = sessionRepository.save(session);
 
-        // Simple sync: remove existing and re-add if provided
+        // Smart sync: update existing rounds, add new ones, and safely delete removed ones
         if (request.getRounds() != null) {
-            roundRepository.deleteAll(saved.getRounds());
-            saved.getRounds().clear();
+            List<com.enicarthage.incubator.model.Round> existingRounds = new java.util.ArrayList<>(saved.getRounds());
+            
             for (com.enicarthage.incubator.dto.request.RoundRequest rr : request.getRounds()) {
-                saveRound(saved, rr);
+                // Match by orderIndex or name
+                com.enicarthage.incubator.model.Round existing = existingRounds.stream()
+                        .filter(r -> r.getOrderIndex() == rr.getOrderIndex() || r.getName().equals(rr.getName()))
+                        .findFirst()
+                        .orElse(null);
+                
+                if (existing != null) {
+                    existing.setName(rr.getName());
+                    existing.setDescription(rr.getDescription());
+                    existing.setOrderIndex(rr.getOrderIndex());
+                    existing.setRoundNumber(rr.getOrderIndex());
+                    existing.setStatus(rr.getStatus());
+                    
+                    java.util.Set<com.enicarthage.incubator.model.User> evaluators = new java.util.HashSet<>();
+                    if (rr.getEvaluatorIds() != null) {
+                        for (Long eid : rr.getEvaluatorIds()) {
+                            userRepository.findById(eid).ifPresent(evaluators::add);
+                        }
+                    }
+                    existing.setEvaluators(evaluators);
+                    roundRepository.save(existing);
+                    existingRounds.remove(existing);
+                } else {
+                    saveRound(saved, rr);
+                }
+            }
+            
+            // For any rounds left that are no longer in the request
+            for (com.enicarthage.incubator.model.Round toDelete : existingRounds) {
+                if (applicationRepository.countByCurrentRoundId(toDelete.getId()) > 0) {
+                    throw new IllegalStateException("Impossible de supprimer le round '" + toDelete.getName() + "' car des candidatures y sont actuellement affectées.");
+                }
+                roundRepository.delete(toDelete);
+                saved.getRounds().remove(toDelete);
             }
         }
         
