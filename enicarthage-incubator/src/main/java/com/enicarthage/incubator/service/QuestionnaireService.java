@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class QuestionnaireService {
 
-    private final SessionRepository sessionRepository;
+    private final RoundRepository roundRepository;
     private final SessionQuestionRepository questionRepository;
     private final ApplicationRepository applicationRepository;
     private final QuestionnaireAnswerRepository answerRepository;
@@ -27,23 +27,23 @@ public class QuestionnaireService {
 
     // ── ADMIN ──────────────────────────────────────────────────────────────
 
-    public List<SessionQuestionResponse> getQuestionnaire(Long sessionId) {
-        return questionRepository.findBySessionIdOrderByOrderIndexAsc(sessionId)
+    public List<SessionQuestionResponse> getQuestionnaire(Long roundId) {
+        return questionRepository.findByRoundIdOrderByOrderIndexAsc(roundId)
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     @Transactional
-    public List<SessionQuestionResponse> saveQuestionnaire(Long sessionId, List<SessionQuestionRequest> requests) {
-        Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Session non trouvée"));
+    public List<SessionQuestionResponse> saveQuestionnaire(Long roundId, List<SessionQuestionRequest> requests) {
+        Round round = roundRepository.findById(roundId)
+                .orElseThrow(() -> new ResourceNotFoundException("Round non trouvé"));
 
         // Full replace: remove old questions and insert fresh ones
-        questionRepository.deleteBySessionId(sessionId);
+        questionRepository.deleteByRoundId(roundId);
 
         int idx = 0;
         for (SessionQuestionRequest req : requests) {
             SessionQuestion q = SessionQuestion.builder()
-                    .session(session)
+                    .round(round)
                     .label(req.getLabel())
                     .type(req.getType())
                     .options(req.getOptions())
@@ -53,29 +53,36 @@ public class QuestionnaireService {
             questionRepository.save(q);
         }
 
-        return getQuestionnaire(sessionId);
+        return getQuestionnaire(roundId);
     }
 
     // ── CANDIDATE ──────────────────────────────────────────────────────────
 
     @Transactional
-    public void submitAnswers(Long sessionId, QuestionnaireSubmitRequest request) {
+    public void submitAnswers(Long roundId, QuestionnaireSubmitRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User candidate = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
 
+        Round round = roundRepository.findById(roundId)
+                .orElseThrow(() -> new ResourceNotFoundException("Round non trouvé"));
+
         Application app = applicationRepository
-                .findBySessionIdAndCandidateId(sessionId, candidate.getId())
+                .findBySessionIdAndCandidateId(round.getSession().getId(), candidate.getId())
                 .orElseGet(() -> {
-                    Session session = sessionRepository.findById(sessionId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Session non trouvée"));
-                    Application newApp = Application.builder()
-                            .session(session)
+                    if (round.getOrderIndex() != 1) {
+                        throw new IllegalStateException("Vous n'êtes pas inscrit à cette session.");
+                    }
+                    return applicationRepository.save(Application.builder()
+                            .session(round.getSession())
                             .candidate(candidate)
                             .status(ApplicationStatus.PENDING)
-                            .build();
-                    return applicationRepository.save(newApp);
+                            .build());
                 });
+
+        if (app.getCurrentRound() != null && !app.getCurrentRound().getId().equals(roundId)) {
+            throw new IllegalStateException("Vous n'êtes pas autorisé à soumettre pour ce round actuellement.");
+        }
 
         // Delete old answers for this application before saving new ones
         List<QuestionnaireAnswer> existing = answerRepository.findByApplicationId(app.getId());
@@ -95,13 +102,19 @@ public class QuestionnaireService {
         }
     }
 
-    public boolean hasAnswered(Long sessionId) {
+    public boolean hasAnswered(Long roundId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User candidate = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
 
-        return applicationRepository.findBySessionIdAndCandidateId(sessionId, candidate.getId())
-                .map(app -> !answerRepository.findByApplicationId(app.getId()).isEmpty())
+        Round round = roundRepository.findById(roundId).orElseThrow();
+
+        return applicationRepository.findBySessionIdAndCandidateId(round.getSession().getId(), candidate.getId())
+                .map(app -> {
+                    // Check if there is any answer for THIS round's questions
+                    List<QuestionnaireAnswer> answers = answerRepository.findByApplicationId(app.getId());
+                    return answers.stream().anyMatch(a -> a.getQuestion().getRound().getId().equals(roundId));
+                })
                 .orElse(false);
     }
 
@@ -132,7 +145,7 @@ public class QuestionnaireService {
     private SessionQuestionResponse toResponse(SessionQuestion q) {
         return SessionQuestionResponse.builder()
                 .id(q.getId())
-                .sessionId(q.getSession().getId())
+                .roundId(q.getRound().getId())
                 .label(q.getLabel())
                 .type(q.getType())
                 .options(q.getOptions())

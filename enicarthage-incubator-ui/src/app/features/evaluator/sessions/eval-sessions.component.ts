@@ -42,10 +42,7 @@ import { Role } from '../../../core/models/user.model';
                     @if (s.status !== 'CLOSED') {
                       <button (click)="openEdit(s)" class="btn-ghost btn-sm text-xs">Modifier</button>
                     }
-                    <button (click)="openQuestionnaire(s)" class="btn-ghost btn-sm text-xs text-primary-600 flex items-center gap-1">
-                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                      Questionnaire
-                    </button>
+
                     <button (click)="delTarget = s" class="btn-ghost btn-sm text-xs text-danger-500">Suppr</button>
                   </div>
                 </td>
@@ -93,7 +90,7 @@ import { Role } from '../../../core/models/user.model';
                         <option value="COMPLETED">Terminé</option>
                       </select>
                     </div>
-                    <div class="space-y-2">
+                    <div class="space-y-2 mt-3">
                       <label class="text-[10px] font-bold text-text-muted uppercase">Évaluateurs</label>
                       <div class="flex flex-wrap gap-2">
                         @for (ev of allEvaluators; track ev.id) {
@@ -107,6 +104,46 @@ import { Role } from '../../../core/models/user.model';
                         }
                       </div>
                     </div>
+                    <div class="space-y-2 mt-3">
+                      <label class="text-[10px] font-bold text-text-muted uppercase">Président du Jury *</label>
+                      <select class="input bg-white text-sm" [(ngModel)]="r.juryPresidentId" [name]="'rpres-' + $index" required>
+                        <option [ngValue]="null">-- Sélectionner --</option>
+                        @for (ev of getSelectedEvals(r); track ev.id) {
+                          <option [ngValue]="ev.id">{{ ev.firstName }} {{ ev.lastName }}</option>
+                        }
+                      </select>
+                    </div>
+
+                    <!-- Round Questions -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                      <div class="flex items-center justify-between mb-2">
+                        <label class="text-[10px] font-bold text-text-muted uppercase">Questionnaire Obligatoire *</label>
+                        <button type="button" (click)="addQuestionToRound(r)" class="btn-ghost btn-xs text-primary-600">+ Question</button>
+                      </div>
+                      
+                      @for (q of r.questions; track q; let qi = $index) {
+                        <div class="flex items-start gap-2 mb-2">
+                          <input class="input bg-white text-xs py-1 flex-1" [(ngModel)]="q.label" [name]="'rq-' + $index + '-' + qi" placeholder="Question..." required>
+                          <select class="input bg-white text-xs py-1 w-24" [(ngModel)]="q.type" [name]="'rqt-' + $index + '-' + qi">
+                            <option value="TEXT">Texte</option>
+                            <option value="TEXTAREA">Paragraphe</option>
+                            <option value="FILE">Fichier</option>
+                            <option value="VIDEO_URL">Vidéo</option>
+                            <option value="RADIO">Radio</option>
+                            <option value="CHECKBOX">Cases</option>
+                          </select>
+                          @if (r.questions.length > 1) {
+                            <button type="button" (click)="removeQuestionFromRound(r, qi)" class="text-danger-500 hover:bg-danger-50 p-1 rounded">✕</button>
+                          }
+                        </div>
+                        @if (q.type === 'RADIO' || q.type === 'CHECKBOX') {
+                          <div class="mb-2 pl-2">
+                            <input class="input bg-white text-xs py-1 w-full" [(ngModel)]="q.options" [name]="'rqo-' + $index + '-' + qi" placeholder="Options séparées par virgule">
+                          </div>
+                        }
+                      }
+                    </div>
+
                   </div>
                 }
               </div>
@@ -117,79 +154,7 @@ import { Role } from '../../../core/models/user.model';
         </div>
       }
 
-      <!-- Admin: Questionnaire Builder -->
-      @if (showQuestionnaire && questionnaireTarget) {
-        <div class="overlay" (click)="closeQuestionnaire()"></div>
-        <div class="slide-over p-8 w-full max-w-2xl overflow-y-auto" style="max-height:100vh">
-          <div class="flex items-start justify-between mb-6">
-            <div>
-              <h2 class="text-xl font-bold text-text-primary">Questionnaire</h2>
-              <p class="text-sm text-text-muted mt-1">{{ questionnaireTarget.name }}</p>
-            </div>
-            <button (click)="closeQuestionnaire()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-text-muted">✕</button>
-          </div>
 
-          <div class="space-y-4 mb-6">
-            @for (q of editQuestions; track q; let i = $index) {
-              <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100 relative">
-                <button type="button" (click)="removeQuestion(i)" class="absolute top-3 right-3 text-text-muted hover:text-danger-500 text-xs font-bold">✕</button>
-
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                  <div class="col-span-2 form-group">
-                    <label class="label text-[10px]">Question {{ i + 1 }}</label>
-                    <input class="input bg-white" [(ngModel)]="q.label" [name]="'label-' + i" placeholder="Libellé de la question..." required>
-                  </div>
-                  <div class="form-group">
-                    <label class="label text-[10px]">Type de réponse</label>
-                    <select class="input bg-white text-sm" [(ngModel)]="q.type" [name]="'type-' + i">
-                      <option value="TEXT">Texte court</option>
-                      <option value="TEXTAREA">Texte long</option>
-                      <option value="FILE">Fichier</option>
-                      <option value="VIDEO_URL">Lien vidéo</option>
-                      <option value="RADIO">Choix unique</option>
-                      <option value="CHECKBOX">Choix multiple</option>
-                    </select>
-                  </div>
-                  <div class="form-group flex items-end pb-1">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" [(ngModel)]="q.required" [name]="'req-' + i" class="w-4 h-4 rounded text-primary-600">
-                      <span class="text-sm text-text-secondary">Obligatoire</span>
-                    </label>
-                  </div>
-                </div>
-
-                @if (q.type === 'RADIO' || q.type === 'CHECKBOX') {
-                  <div class="form-group">
-                    <label class="label text-[10px]">Options (séparées par des virgules)</label>
-                    <input class="input bg-white text-sm" [(ngModel)]="q.options" [name]="'opts-' + i" placeholder="Option 1, Option 2, Option 3">
-                  </div>
-                }
-              </div>
-            }
-          </div>
-
-          <div class="flex gap-3 mb-6">
-            <button type="button" (click)="addQuestion()" class="btn-outline btn-sm flex-1">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-              Ajouter une question
-            </button>
-          </div>
-
-          @if (questionnaireError) {
-            <div class="p-4 bg-danger-50 border border-danger-100 rounded-xl text-sm text-danger-600 mb-4">{{ questionnaireError }}</div>
-          }
-          @if (questionnaireSuccess) {
-            <div class="p-4 bg-success-50 border border-success-100 rounded-xl text-sm text-success-600 mb-4 flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              Questionnaire sauvegardé avec succès !
-            </div>
-          }
-
-          <button (click)="saveQuestionnaire()" class="btn-primary btn-md w-full" [disabled]="savingQuestionnaire">
-            {{ savingQuestionnaire ? 'Sauvegarde...' : 'Sauvegarder le questionnaire' }}
-          </button>
-        </div>
-      }
 
       <app-confirm-modal
         [open]="!!delTarget"
@@ -319,8 +284,23 @@ export class EvalSessionsComponent implements OnInit {
       description: '',
       orderIndex: this.fd.rounds.length + 1,
       status: 'UPCOMING',
-      evaluatorIds: []
+      evaluatorIds: [],
+      juryPresidentId: null,
+      questions: [{ label: '', type: 'TEXT', required: true, orderIndex: 0 }]
     });
+  }
+
+  addQuestionToRound(round: any) {
+    if (!round.questions) round.questions = [];
+    round.questions.push({ label: '', type: 'TEXT', required: true, orderIndex: round.questions.length });
+  }
+
+  removeQuestionFromRound(round: any, idx: number) {
+    round.questions.splice(idx, 1);
+  }
+
+  getSelectedEvals(round: any) {
+    return this.allEvaluators.filter(e => round.evaluatorIds?.includes(e.id));
   }
 
   removeRound(index: number) {
@@ -357,13 +337,29 @@ export class EvalSessionsComponent implements OnInit {
         description: r.description,
         orderIndex: r.orderIndex,
         status: r.status,
-        evaluatorIds: r.evaluators?.map((e: any) => e.id) || []
+        passingCandidatesCount: r.passingCandidatesCount,
+        evaluatorIds: r.evaluators?.map((e: any) => e.id) || [],
+        juryPresidentId: r.juryPresident?.id || null,
+        questions: r.questions && r.questions.length > 0 ? r.questions : [{ label: '', type: 'TEXT', required: true, orderIndex: 0 }]
       })) || []
     };
     this.showForm = true;
   }
 
   save() {
+    // Validate
+    for (let i = 0; i < this.fd.rounds.length; i++) {
+      const r = this.fd.rounds[i];
+      if (!r.juryPresidentId) {
+        alert('Veuillez sélectionner un président du jury pour le round ' + (i+1));
+        return;
+      }
+      if (!r.questions || r.questions.length === 0 || r.questions.some((q: any) => !q.label.trim())) {
+        alert('Veuillez ajouter au moins une question valide pour le round ' + (i+1));
+        return;
+      }
+    }
+
     const obs = this.editId
       ? this.svc.updateSession(this.editId, this.fd)
       : this.svc.createSession(this.fd);
@@ -388,62 +384,7 @@ export class EvalSessionsComponent implements OnInit {
     }
   }
 
-  // ---- Questionnaire Builder ----
-  openQuestionnaire(s: Session) {
-    this.questionnaireTarget = s;
-    this.showQuestionnaire = true;
-    this.questionnaireError = '';
-    this.questionnaireSuccess = false;
-    this.editQuestions = [];
 
-    this.questionnaireSvc.getQuestionnaire(s.id).subscribe(r => {
-      if (r.data && r.data.length > 0) {
-        this.editQuestions = r.data.map(q => ({ ...q }));
-      }
-    });
-  }
-
-  closeQuestionnaire() {
-    this.showQuestionnaire = false;
-    this.questionnaireTarget = null;
-  }
-
-  addQuestion() {
-    this.editQuestions.push({
-      label: '',
-      type: 'TEXT' as QuestionType,
-      required: true,
-      orderIndex: this.editQuestions.length,
-      options: ''
-    });
-  }
-
-  removeQuestion(index: number) {
-    this.editQuestions.splice(index, 1);
-  }
-
-  saveQuestionnaire() {
-    if (!this.questionnaireTarget) return;
-    const invalid = this.editQuestions.filter(q => !q.label?.trim());
-    if (invalid.length > 0) {
-      this.questionnaireError = 'Veuillez remplir le libellé de toutes les questions.';
-      return;
-    }
-
-    this.savingQuestionnaire = true;
-    this.questionnaireError = '';
-    this.questionnaireSvc.saveQuestionnaire(this.questionnaireTarget.id, this.editQuestions).subscribe({
-      next: () => {
-        this.savingQuestionnaire = false;
-        this.questionnaireSuccess = true;
-        setTimeout(() => this.closeQuestionnaire(), 1500);
-      },
-      error: (err: any) => {
-        this.savingQuestionnaire = false;
-        this.questionnaireError = err.error?.message || 'Erreur lors de la sauvegarde.';
-      }
-    });
-  }
 
   // ---- Shared helpers ----
   statusBadge(s: SessionStatus) {

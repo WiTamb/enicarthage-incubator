@@ -27,8 +27,13 @@ export interface Round {
   name: string;
   orderIndex: number;
   description?: string;
+  passingCandidatesCount?: number;
   status: RoundStatus;
   evaluators?: User[];
+  juryPresident?: User;
+  selectionValidated: boolean;
+  selectionFinalized: boolean;
+  questionCount: number;
 }
 
 export interface EvaluationHistory {
@@ -52,9 +57,46 @@ export interface Application {
   currentRoundName?: string;
   currentRoundIndex?: number;
   status: ApplicationStatus;
+  averageScore?: number;
   evaluationHistory?: EvaluationHistory[];
   appliedAt: string;
   updatedAt: string;
+}
+
+// ─── Round Selection Result ───────────────────────────────────────────────────
+
+export interface CandidateRankEntry {
+  applicationId: number;
+  candidateId: number;
+  candidateName: string;
+  candidateEmail: string;
+  averageScore: number;
+  rank: number;
+  autoAccepted: boolean;
+  finalAccepted: boolean;
+  overrideJustification?: string;
+  overriddenBy?: string;
+  overriddenAt?: string;
+}
+
+export interface RoundResult {
+  roundId: number;
+  roundName: string;
+  passingCandidatesCount: number;
+  selectionValidated: boolean;
+  selectionFinalized: boolean;
+  juryPresident?: User;
+  rankedCandidates: CandidateRankEntry[];
+}
+
+export interface SelectionOverrideDecision {
+  applicationId: number;
+  accepted: boolean;
+  justification: string;
+}
+
+export interface SelectionOverrideRequest {
+  decisions: SelectionOverrideDecision[];
 }
 
 export type QuestionType = 'TEXT' | 'TEXTAREA' | 'FILE' | 'VIDEO_URL' | 'RADIO' | 'CHECKBOX';

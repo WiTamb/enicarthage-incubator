@@ -5,6 +5,8 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "rounds")
@@ -38,6 +40,10 @@ public class Round {
 
     private LocalDate deadline;
 
+    @Column(name = "passing_candidates_count")
+    @Builder.Default
+    private Integer passingCandidatesCount = 0;
+
     @Builder.Default
     private boolean active = true;
 
@@ -55,6 +61,24 @@ public class Round {
     )
     @Builder.Default
     private Set<User> evaluators = new HashSet<>();
+
+    // The evaluator who acts as jury president for this round
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "jury_president_id")
+    private User juryPresident;
+
+    // True once admin has reviewed and possibly overridden the selection list
+    @Builder.Default
+    private boolean selectionValidated = false;
+
+    // True once jury president has validated — results are final and notifications sent
+    @Builder.Default
+    private boolean selectionFinalized = false;
+
+    @OneToMany(mappedBy = "round", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    @Builder.Default
+    private List<SessionQuestion> questions = new ArrayList<>();
 
     @OneToMany(mappedBy = "round", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

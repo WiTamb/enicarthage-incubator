@@ -23,6 +23,7 @@ public class SessionService {
     private final ApplicationRepository applicationRepository;
     private final RoundRepository roundRepository;
     private final UserRepository userRepository;
+    private final QuestionnaireService questionnaireService;
 
     public List<SessionResponse> getAllSessions() {
         return sessionRepository.findAll().stream()
@@ -114,8 +115,9 @@ public class SessionService {
                     existing.setDescription(rr.getDescription());
                     existing.setOrderIndex(rr.getOrderIndex());
                     existing.setRoundNumber(rr.getOrderIndex());
+                    existing.setPassingCandidatesCount(rr.getPassingCandidatesCount() != null ? rr.getPassingCandidatesCount() : 0);
                     existing.setStatus(rr.getStatus());
-                    
+
                     java.util.Set<com.enicarthage.incubator.model.User> evaluators = new java.util.HashSet<>();
                     if (rr.getEvaluatorIds() != null) {
                         for (Long eid : rr.getEvaluatorIds()) {
@@ -123,7 +125,17 @@ public class SessionService {
                         }
                     }
                     existing.setEvaluators(evaluators);
+
+                    if (rr.getJuryPresidentId() != null) {
+                        userRepository.findById(rr.getJuryPresidentId()).ifPresent(existing::setJuryPresident);
+                    }
+
                     roundRepository.save(existing);
+                    
+                    if (rr.getQuestions() != null && !rr.getQuestions().isEmpty()) {
+                        questionnaireService.saveQuestionnaire(existing.getId(), rr.getQuestions());
+                    }
+                    
                     existingRounds.remove(existing);
                 } else {
                     saveRound(saved, rr);
@@ -151,16 +163,27 @@ public class SessionService {
             }
         }
 
+        com.enicarthage.incubator.model.User juryPresident = null;
+        if (rr.getJuryPresidentId() != null) {
+            juryPresident = userRepository.findById(rr.getJuryPresidentId()).orElse(null);
+        }
+
         com.enicarthage.incubator.model.Round round = com.enicarthage.incubator.model.Round.builder()
                 .session(session)
                 .name(rr.getName())
                 .description(rr.getDescription())
                 .orderIndex(rr.getOrderIndex())
                 .roundNumber(rr.getOrderIndex())
+                .passingCandidatesCount(rr.getPassingCandidatesCount() != null ? rr.getPassingCandidatesCount() : 0)
                 .status(rr.getStatus())
                 .evaluators(evaluators)
+                .juryPresident(juryPresident)
                 .build();
-        roundRepository.save(round);
+        com.enicarthage.incubator.model.Round savedRound = roundRepository.save(round);
+
+        if (rr.getQuestions() != null && !rr.getQuestions().isEmpty()) {
+            questionnaireService.saveQuestionnaire(savedRound.getId(), rr.getQuestions());
+        }
     }
 
     @Transactional
@@ -199,7 +222,30 @@ public class SessionService {
                                 .name(r.getName())
                                 .description(r.getDescription())
                                 .orderIndex(r.getOrderIndex())
+                                .passingCandidatesCount(r.getPassingCandidatesCount())
                                 .status(r.getStatus())
+                                .selectionValidated(r.isSelectionValidated())
+                                .selectionFinalized(r.isSelectionFinalized())
+                                .questionCount(r.getQuestions() != null ? r.getQuestions().size() : 0)
+                                .questions(r.getQuestions() != null ? r.getQuestions().stream()
+                                        .map(q -> com.enicarthage.incubator.dto.response.SessionQuestionResponse.builder()
+                                                .id(q.getId())
+                                                .roundId(r.getId())
+                                                .label(q.getLabel())
+                                                .type(q.getType())
+                                                .options(q.getOptions())
+                                                .required(q.isRequired())
+                                                .orderIndex(q.getOrderIndex())
+                                                .build())
+                                        .collect(Collectors.toList()) : java.util.List.of())
+                                .juryPresident(r.getJuryPresident() != null ?
+                                        com.enicarthage.incubator.dto.response.UserResponse.builder()
+                                                .id(r.getJuryPresident().getId())
+                                                .firstName(r.getJuryPresident().getFirstName())
+                                                .lastName(r.getJuryPresident().getLastName())
+                                                .email(r.getJuryPresident().getEmail())
+                                                .role(r.getJuryPresident().getRole().name())
+                                                .build() : null)
                                 .evaluators(r.getEvaluators().stream()
                                         .map(e -> com.enicarthage.incubator.dto.response.UserResponse.builder()
                                                 .id(e.getId())

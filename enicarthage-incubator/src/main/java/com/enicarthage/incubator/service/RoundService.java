@@ -10,6 +10,7 @@ import com.enicarthage.incubator.model.User;
 import com.enicarthage.incubator.repository.RoundRepository;
 import com.enicarthage.incubator.repository.SessionRepository;
 import com.enicarthage.incubator.repository.UserRepository;
+import com.enicarthage.incubator.service.QuestionnaireService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class RoundService {
     private final RoundRepository roundRepository;
     private final SessionRepository sessionRepository;
     private final UserRepository userRepository;
+    private final QuestionnaireService questionnaireService;
 
     public List<RoundResponse> getRoundsBySession(Long sessionId) {
         return roundRepository.findBySessionIdOrderByOrderIndexAsc(sessionId).stream()
@@ -44,17 +46,31 @@ public class RoundService {
             }
         }
 
+        User juryPresident = null;
+        if (request.getJuryPresidentId() != null) {
+            juryPresident = userRepository.findById(request.getJuryPresidentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Président du jury non trouvé"));
+        }
+
         Round round = Round.builder()
                 .session(session)
                 .name(request.getName())
                 .description(request.getDescription())
                 .orderIndex(request.getOrderIndex())
                 .roundNumber(request.getOrderIndex())
+                .passingCandidatesCount(request.getPassingCandidatesCount() != null ? request.getPassingCandidatesCount() : 0)
                 .status(request.getStatus())
                 .evaluators(evaluators)
+                .juryPresident(juryPresident)
                 .build();
         
-        return mapToResponse(roundRepository.save(round));
+        Round savedRound = roundRepository.save(round);
+
+        if (request.getQuestions() != null && !request.getQuestions().isEmpty()) {
+            questionnaireService.saveQuestionnaire(savedRound.getId(), request.getQuestions());
+        }
+
+        return mapToResponse(savedRound);
     }
 
     @Transactional
@@ -79,6 +95,14 @@ public class RoundService {
                 userRepository.findById(id).ifPresent(evaluators::add);
             }
             round.setEvaluators(evaluators);
+        }
+
+        if (request.getJuryPresidentId() != null) {
+            userRepository.findById(request.getJuryPresidentId()).ifPresent(round::setJuryPresident);
+        }
+
+        if (request.getPassingCandidatesCount() != null) {
+            round.setPassingCandidatesCount(request.getPassingCandidatesCount());
         }
         
         // Sync order index and round number for UI
@@ -111,6 +135,11 @@ public class RoundService {
                 .description(round.getDescription())
                 .orderIndex(round.getOrderIndex())
                 .status(round.getStatus())
+                .passingCandidatesCount(round.getPassingCandidatesCount())
+                .selectionValidated(round.isSelectionValidated())
+                .selectionFinalized(round.isSelectionFinalized())
+                .questionCount(round.getQuestions() != null ? round.getQuestions().size() : 0)
+                .juryPresident(round.getJuryPresident() != null ? mapUserToResponse(round.getJuryPresident()) : null)
                 .evaluators(round.getEvaluators().stream()
                         .map(this::mapUserToResponse)
                         .collect(Collectors.toList()))

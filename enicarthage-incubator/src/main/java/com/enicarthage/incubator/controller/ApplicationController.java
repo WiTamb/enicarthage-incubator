@@ -69,4 +69,28 @@ public class ApplicationController {
             @Valid @RequestBody EvaluationRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Évaluation enregistrée", applicationService.evaluateApplication(id, request)));
     }
+
+    // ─── Selection lifecycle ───────────────────────────────────────────────────
+
+    @GetMapping("/api/rounds/{roundId}/selection")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EVALUATOR')")
+    public ResponseEntity<ApiResponse<com.enicarthage.incubator.dto.response.RoundResultResponse>> getSelectionList(
+            @PathVariable Long roundId) {
+        return ResponseEntity.ok(ApiResponse.success("Liste de sélection", applicationService.getSelectionList(roundId)));
+    }
+
+    @PutMapping("/api/rounds/{roundId}/selection/override")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<com.enicarthage.incubator.dto.response.RoundResultResponse>> overrideSelection(
+            @PathVariable Long roundId,
+            @RequestBody com.enicarthage.incubator.dto.request.SelectionOverrideRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Modifications enregistrées", applicationService.overrideSelection(roundId, request)));
+    }
+
+    @PostMapping("/api/rounds/{roundId}/selection/finalize")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EVALUATOR')")
+    public ResponseEntity<ApiResponse<com.enicarthage.incubator.dto.response.RoundResultResponse>> finalizeSelection(
+            @PathVariable Long roundId) {
+        return ResponseEntity.ok(ApiResponse.success("Liste finalisée et notifications envoyées", applicationService.finalizeSelection(roundId)));
+    }
 }

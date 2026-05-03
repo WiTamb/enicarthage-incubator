@@ -33,8 +33,16 @@ public class DataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         if (sessionRepository.count() > 0) {
-            log.info("ℹ️ Données de test déjà présentes. Aucune action nécessaire.");
-            return;
+            log.info("ℹ️ Données de test déjà présentes. Suppression en cours...");
+            answerRepository.deleteAll();
+            evaluationRepository.deleteAll();
+            projectRepository.deleteAll();
+            applicationRepository.deleteAll();
+            questionRepository.deleteAll();
+            roundRepository.deleteAll();
+            sessionRepository.deleteAll();
+            // We do not delete users to avoid FK constraints with event_registrations, etc.
+            // createUser will just fetch the existing users.
         }
 
         log.info("🌱 Initialisation du jeu de données complet et cohérent...");
@@ -70,13 +78,20 @@ public class DataInitializer implements CommandLineRunner {
                 .status(SessionStatus.CLOSED).build());
 
         Round cRound1 = roundRepository.save(Round.builder().session(closedSession).name("Sélection sur Dossier")
-                .orderIndex(1).status(RoundStatus.COMPLETED).evaluators(allEvals).build());
+                .orderIndex(1).status(RoundStatus.COMPLETED).evaluators(allEvals).passingCandidatesCount(5)
+                .juryPresident(evalTech).build());
         Round cRound2 = roundRepository.save(Round.builder().session(closedSession).name("Pitch Final")
-                .orderIndex(2).status(RoundStatus.COMPLETED).evaluators(allEvals).build());
+                .orderIndex(2).status(RoundStatus.COMPLETED).evaluators(allEvals).passingCandidatesCount(1)
+                .juryPresident(evalBiz).build());
 
-        addQuestions(closedSession, Arrays.asList(
+        addQuestions(cRound1, Arrays.asList(
                 q("Nom de la solution IA", QuestionType.TEXT, true, 0, null),
                 q("Cas d'usage principal", QuestionType.TEXTAREA, true, 1, null)
+        ));
+
+        addQuestions(cRound2, Arrays.asList(
+                q("Lien de la présentation (Pitch Deck)", QuestionType.FILE, true, 0, null),
+                q("Besoins de financement estimés", QuestionType.TEXT, true, 1, null)
         ));
 
         // --- SESSION 2: EN COURS (IN_PROGRESS) ---
@@ -88,17 +103,28 @@ public class DataInitializer implements CommandLineRunner {
                 .status(SessionStatus.IN_PROGRESS).build());
 
         Round aRound1 = roundRepository.save(Round.builder().session(activeSession).name("Évaluation du Concept")
-                .orderIndex(1).status(RoundStatus.COMPLETED).evaluators(allEvals).build());
+                .orderIndex(1).status(RoundStatus.COMPLETED).evaluators(allEvals).passingCandidatesCount(4)
+                .juryPresident(evalGen).build());
         Round aRound2 = roundRepository.save(Round.builder().session(activeSession).name("Prototype Technique")
-                .orderIndex(2).status(RoundStatus.ACTIVE).evaluators(techEvals).build());
+                .orderIndex(2).status(RoundStatus.ACTIVE).evaluators(techEvals).passingCandidatesCount(2)
+                .juryPresident(evalTech).build());
         Round aRound3 = roundRepository.save(Round.builder().session(activeSession).name("Go To Market")
-                .orderIndex(3).status(RoundStatus.UPCOMING).evaluators(Set.of(evalBiz)).build());
+                .orderIndex(3).status(RoundStatus.UPCOMING).evaluators(Set.of(evalBiz)).passingCandidatesCount(1)
+                .juryPresident(evalBiz).build());
 
-        addQuestions(activeSession, Arrays.asList(
+        addQuestions(aRound1, Arrays.asList(
                 q("Titre du projet GreenTech", QuestionType.TEXT, true, 0, null),
                 q("Description de l'impact écologique", QuestionType.TEXTAREA, true, 1, null),
-                q("Technologie clé", QuestionType.RADIO, true, 2, "IoT, Matériaux, Énergie renouvelable, Autre"),
-                q("Lien Démo / Vidéo", QuestionType.VIDEO_URL, false, 3, null)
+                q("Technologie clé", QuestionType.RADIO, true, 2, "IoT, Matériaux, Énergie renouvelable, Autre")
+        ));
+        
+        addQuestions(aRound2, Arrays.asList(
+                q("Lien Démo / Vidéo", QuestionType.VIDEO_URL, false, 0, null)
+        ));
+        
+        addQuestions(aRound3, Arrays.asList(
+                q("Stratégie d'acquisition client", QuestionType.TEXTAREA, true, 0, null),
+                q("Canaux de distribution envisagés", QuestionType.CHECKBOX, true, 1, "B2B Direct, Partenariats, Réseaux Sociaux, Autre")
         ));
 
         // --- SESSION 3: OUVERTE (OPEN) ---
@@ -110,9 +136,10 @@ public class DataInitializer implements CommandLineRunner {
                 .status(SessionStatus.OPEN).build());
 
         Round oRound1 = roundRepository.save(Round.builder().session(openSession).name("Phase d'Inscription")
-                .orderIndex(1).status(RoundStatus.ACTIVE).evaluators(allEvals).build());
+                .orderIndex(1).status(RoundStatus.ACTIVE).evaluators(allEvals).passingCandidatesCount(10)
+                .juryPresident(evalGen).build());
 
-        addQuestions(openSession, Arrays.asList(
+        addQuestions(oRound1, Arrays.asList(
                 q("Nom de la startup FinTech", QuestionType.TEXT, true, 0, null),
                 q("Problème résolu", QuestionType.TEXTAREA, true, 1, null),
                 q("Marché ciblé", QuestionType.CHECKBOX, true, 2, "B2B, B2C, B2B2C, Institutionnel")
@@ -156,13 +183,16 @@ public class DataInitializer implements CommandLineRunner {
                 .build());
 
         // ---- Candidats Session IN_PROGRESS ----
-        List<SessionQuestion> greenQs = questionRepository.findBySessionIdOrderByOrderIndexAsc(activeSession.getId());
+        List<SessionQuestion> greenQs1 = questionRepository.findByRoundIdOrderByOrderIndexAsc(aRound1.getId());
+        List<SessionQuestion> greenQs2 = questionRepository.findByRoundIdOrderByOrderIndexAsc(aRound2.getId());
 
         // Ahmed: Accepté au Round 2, Projet soumis, En cours de revue
         Application app3 = applicationRepository.save(Application.builder()
                 .session(activeSession).candidate(cand3).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
-        answer(app3, greenQs.get(0), "SolarFlow"); answer(app3, greenQs.get(1), "Optimisation des panneaux solaires.");
-        answer(app3, greenQs.get(2), "Énergie renouvelable");
+        answer(app3, greenQs1.get(0), "SolarFlow"); answer(app3, greenQs1.get(1), "Optimisation des panneaux solaires.");
+        answer(app3, greenQs1.get(2), "Énergie renouvelable");
+        // Also answered round 2 video
+        answer(app3, greenQs2.get(0), "https://youtube.com/solarflow");
         Project proj3 = projectRepository.save(Project.builder()
                 .title("SolarFlow").description("Tableau de bord de monitoring solaire.")
                 .domain("Énergie").githubUrl("https://github.com/ahmed/solarflow")
@@ -176,8 +206,8 @@ public class DataInitializer implements CommandLineRunner {
         // Nour: Accepté au Round 2, Projet soumis, Déjà accepté
         Application app4 = applicationRepository.save(Application.builder()
                 .session(activeSession).candidate(cand4).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
-        answer(app4, greenQs.get(0), "EcoTrack"); answer(app4, greenQs.get(1), "Suivi de la consommation carbone personnelle.");
-        answer(app4, greenQs.get(2), "Autre");
+        answer(app4, greenQs1.get(0), "EcoTrack"); answer(app4, greenQs1.get(1), "Suivi de la consommation carbone personnelle.");
+        answer(app4, greenQs1.get(2), "Autre");
         Project proj4 = projectRepository.save(Project.builder()
                 .title("EcoTrack App").description("App mobile de tracking carbone.")
                 .domain("Mobile & Écologie").owner(cand4).round(aRound2).status(ProjectStatus.ACCEPTED).submittedAt(LocalDate.now().minusDays(5).atStartOfDay()).build());
@@ -190,16 +220,16 @@ public class DataInitializer implements CommandLineRunner {
         // Omar: Accepté au Round 2, Projet NON encore soumis
         Application app5 = applicationRepository.save(Application.builder()
                 .session(activeSession).candidate(cand5).currentRound(aRound2).status(ApplicationStatus.ACCEPTED_ROUND_2).build());
-        answer(app5, greenQs.get(0), "WindTech"); answer(app5, greenQs.get(1), "Micro-éoliennes urbaines.");
-        answer(app5, greenQs.get(2), "Énergie renouvelable");
+        answer(app5, greenQs1.get(0), "WindTech"); answer(app5, greenQs1.get(1), "Micro-éoliennes urbaines.");
+        answer(app5, greenQs1.get(2), "Énergie renouvelable");
 
         // Ines: Eliminée au Round 1
         Application app6 = applicationRepository.save(Application.builder()
                 .session(activeSession).candidate(cand6).currentRound(aRound1).status(ApplicationStatus.ELIMINATED_ROUND_1).build());
-        answer(app6, greenQs.get(0), "GreenPlast"); answer(app6, greenQs.get(1), "Recyclage plastique.");
+        answer(app6, greenQs1.get(0), "GreenPlast"); answer(app6, greenQs1.get(1), "Recyclage plastique.");
         
         // ---- Candidats Session OPEN ----
-        List<SessionQuestion> finQs = questionRepository.findBySessionIdOrderByOrderIndexAsc(openSession.getId());
+        List<SessionQuestion> finQs = questionRepository.findByRoundIdOrderByOrderIndexAsc(oRound1.getId());
 
         // Ali: En attente (vient de postuler)
         Application app7 = applicationRepository.save(Application.builder()
@@ -241,8 +271,8 @@ public class DataInitializer implements CommandLineRunner {
                 .label(label).type(type).required(required).orderIndex(idx).options(options).build();
     }
 
-    private void addQuestions(Session session, List<SessionQuestion> questions) {
-        questions.forEach(q -> q.setSession(session));
+    private void addQuestions(Round round, List<SessionQuestion> questions) {
+        questions.forEach(q -> q.setRound(round));
         questionRepository.saveAll(questions);
     }
 }

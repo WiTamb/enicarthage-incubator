@@ -42,10 +42,6 @@ public class Session {
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<SessionQuestion> questions = new ArrayList<>();
-
-    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
     private List<Application> applications = new ArrayList<>();
 
     @Column(updatable = false)

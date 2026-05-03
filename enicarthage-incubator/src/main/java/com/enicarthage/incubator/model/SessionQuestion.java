@@ -17,8 +17,8 @@ public class SessionQuestion {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
-    private Session session;
+    @JoinColumn(name = "round_id", nullable = false)
+    private Round round;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String label;

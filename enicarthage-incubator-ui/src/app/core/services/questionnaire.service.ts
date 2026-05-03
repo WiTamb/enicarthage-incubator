@@ -7,27 +7,27 @@ import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class QuestionnaireService {
-  private base = `${environment.apiUrl}/api/sessions`;
+  private base = `${environment.apiUrl}/api/rounds`;
 
   constructor(private http: HttpClient) {}
 
-  getQuestionnaire(sessionId: number): Observable<ApiResponse<SessionQuestion[]>> {
-    return this.http.get<ApiResponse<SessionQuestion[]>>(`${this.base}/${sessionId}/questionnaire`);
+  getQuestionnaire(roundId: number): Observable<ApiResponse<SessionQuestion[]>> {
+    return this.http.get<ApiResponse<SessionQuestion[]>>(`${this.base}/${roundId}/questionnaire`);
   }
 
-  saveQuestionnaire(sessionId: number, questions: Partial<SessionQuestion>[]): Observable<ApiResponse<SessionQuestion[]>> {
-    return this.http.put<ApiResponse<SessionQuestion[]>>(`${this.base}/${sessionId}/questionnaire`, questions);
+  saveQuestionnaire(roundId: number, questions: Partial<SessionQuestion>[]): Observable<ApiResponse<SessionQuestion[]>> {
+    return this.http.put<ApiResponse<SessionQuestion[]>>(`${this.base}/${roundId}/questionnaire`, questions);
   }
 
-  submitAnswers(sessionId: number, answers: Record<number, string>): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>(`${this.base}/${sessionId}/questionnaire/submit`, { answers });
+  submitAnswers(roundId: number, answers: Record<number, string>): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.base}/${roundId}/questionnaire/submit`, { answers });
   }
 
-  hasAnswered(sessionId: number): Observable<ApiResponse<boolean>> {
-    return this.http.get<ApiResponse<boolean>>(`${this.base}/${sessionId}/questionnaire/has-answered`);
+  hasAnswered(roundId: number): Observable<ApiResponse<boolean>> {
+    return this.http.get<ApiResponse<boolean>>(`${this.base}/${roundId}/questionnaire/has-answered`);
   }
 
-  getAnswers(sessionId: number, applicationId: number): Observable<ApiResponse<QuestionnaireAnswer[]>> {
-    return this.http.get<ApiResponse<QuestionnaireAnswer[]>>(`${this.base}/${sessionId}/questionnaire/applications/${applicationId}/answers`);
+  getAnswers(roundId: number, applicationId: number): Observable<ApiResponse<QuestionnaireAnswer[]>> {
+    return this.http.get<ApiResponse<QuestionnaireAnswer[]>>(`${this.base}/${roundId}/questionnaire/applications/${applicationId}/answers`);
   }
 }

@@ -19,6 +19,7 @@ public class ApplicationResponse {
     private String currentRoundName;
     private Integer currentRoundIndex;
     private ApplicationStatus status;
+    private Double averageScore;  // average of all evaluator scores for the current round
     private List<EvaluationResponse> evaluationHistory;
     private LocalDateTime appliedAt;
     private LocalDateTime updatedAt;

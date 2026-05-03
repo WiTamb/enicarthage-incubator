@@ -43,6 +43,7 @@ export const routes: Routes = [
       { path: 'sessions/:id', loadComponent: () => import('./features/evaluator/session-detail/session-detail.component').then(m => m.SessionDetailComponent) },
       { path: 'sessions/:id/applicants', loadComponent: () => import('./features/evaluator/applicants/applicants.component').then(m => m.ApplicantsComponent) },
       { path: 'sessions/:id/rounds/:roundId/applicants', loadComponent: () => import('./features/evaluator/applicants/applicants.component').then(m => m.ApplicantsComponent) },
+      { path: 'sessions/:id/rounds/:roundId/selection', loadComponent: () => import('./features/evaluator/round-selection/round-selection.component').then(m => m.RoundSelectionComponent) },
       { path: 'profile', loadComponent: () => import('./features/shared/profile/profile.component').then(m => m.ProfileComponent) }
     ]
   },
@@ -60,6 +61,7 @@ export const routes: Routes = [
       { path: 'sessions/:id', loadComponent: () => import('./features/evaluator/session-detail/session-detail.component').then(m => m.SessionDetailComponent) },
       { path: 'sessions/:id/applicants', loadComponent: () => import('./features/evaluator/applicants/applicants.component').then(m => m.ApplicantsComponent) },
       { path: 'sessions/:id/rounds/:roundId/applicants', loadComponent: () => import('./features/evaluator/applicants/applicants.component').then(m => m.ApplicantsComponent) },
+      { path: 'sessions/:id/rounds/:roundId/selection', loadComponent: () => import('./features/evaluator/round-selection/round-selection.component').then(m => m.RoundSelectionComponent) },
       { path: 'events', loadComponent: () => import('./features/admin/events/admin-events.component').then(m => m.AdminEventsComponent) },
       { path: 'news', loadComponent: () => import('./features/admin/news/admin-news.component').then(m => m.AdminNewsComponent) }
     ]

@@ -52,15 +52,15 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                   <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold" [class]="appColor(app.status)">{{ appLabel(app.status) }}</span>
                   </div>
-                  @if (needsQuestionnaire(s.id)) {
+                  @if (needsQuestionnaire(s)) {
                     <!-- Applied but questionnaire not yet submitted -->
-                    <button (click)="openQuestionnaire(s, app)" class="btn-primary btn-xs w-full mt-2">
+                    <button (click)="openQuestionnaire(s)" class="btn-primary btn-xs w-full mt-2">
                       Remplir le questionnaire
                     </button>
                   } @else {
                     <div class="flex items-center gap-2 mt-2 mb-3">
                       <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                      <span class="text-[10px] text-success-600 font-medium">Questionnaire soumis ✓</span>
+                      <span class="text-[10px] text-success-600 font-medium">Questionnaire du round soumis ✓</span>
                     </div>
                     @if (canSubmitProject(app)) {
                       <button (click)="openSubmission(s, app)" class="btn-primary btn-xs w-full shadow-md bg-amber-500 hover:bg-amber-600 border-none">
@@ -73,7 +73,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                 </div>
               } @else if (s.status === 'OPEN') {
                 <!-- Not yet applied to an OPEN session — questionnaire is the gate -->
-                <button (click)="openQuestionnaire(s, null)" class="btn-primary btn-sm w-full flex items-center justify-center gap-2">
+                <button (click)="openQuestionnaire(s)" class="btn-primary btn-sm w-full flex items-center justify-center gap-2">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                   Postuler (questionnaire requis)
                 </button>
@@ -96,10 +96,10 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
           <div>
             <h2 class="text-xl font-bold text-text-primary">{{ questionnaireSession.name }}</h2>
             <p class="text-sm text-text-muted mt-1">
-              @if (!questionnaireApp) {
+              @if (!getMyApp(questionnaireSession.id)) {
                 Répondez au questionnaire pour soumettre votre candidature
               } @else {
-                Mettez à jour vos réponses au questionnaire
+                Remplissez le questionnaire pour ce round
               }
             </p>
           </div>
@@ -107,7 +107,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
         </div>
 
         <!-- Info banner -->
-        @if (!questionnaireApp) {
+        @if (!getMyApp(questionnaireSession.id)) {
           <div class="mb-6 p-3 bg-primary-50 border border-primary-100 rounded-xl flex items-start gap-2 text-xs text-primary-700">
             <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span>Votre candidature sera créée automatiquement après la soumission du questionnaire.</span>
@@ -221,7 +221,7 @@ export class SessionsExplorerComponent implements OnInit {
   questionsLoading = false;
   submitError = '';
   submitSuccess = false;
-  answeredSessions = new Set<number>();
+  answeredRounds = new Set<number>();
 
   constructor(
     private sessionService: SessionService,
@@ -239,21 +239,40 @@ export class SessionsExplorerComponent implements OnInit {
     });
     this.appService.getMyApplications().subscribe(r => {
       this.myApps = r.data || [];
-      // Check which sessions already have submitted answers
-      this.myApps.forEach(app => {
-        this.questionnaireService.hasAnswered(app.sessionId).subscribe(res => {
-          if (res.data) this.answeredSessions.add(app.sessionId);
-        });
-      });
+      // Check which rounds already have submitted answers
+      this.checkQuestionnaires();
     });
+  }
+
+  checkQuestionnaires() {
+    this.sessions.forEach(s => {
+      const rid = this.getCurrentRoundId(s);
+      if (rid) {
+        this.questionnaireService.hasAnswered(rid).subscribe(res => {
+          if (res.data) this.answeredRounds.add(rid);
+        });
+      }
+    });
+  }
+
+  getCurrentRoundId(s: Session): number | null {
+    const app = this.getMyApp(s.id);
+    if (!app && s.rounds && s.rounds.length > 0) return s.rounds[0].id;
+    if (app && app.status !== 'REJECTED' && !app.status.startsWith('ELIMINATED') && app.status !== 'COMPLETED') {
+        if (app.currentRoundId) return app.currentRoundId;
+        if (s.rounds && s.rounds.length > 0) return s.rounds[0].id;
+    }
+    return null;
   }
 
   getMyApp(sessionId: number): Application | undefined {
     return this.myApps.find(a => a.sessionId === sessionId);
   }
 
-  needsQuestionnaire(sessionId: number): boolean {
-    return !this.answeredSessions.has(sessionId);
+  needsQuestionnaire(s: Session): boolean {
+    const rid = this.getCurrentRoundId(s);
+    if (!rid) return false;
+    return !this.answeredRounds.has(rid);
   }
 
   canSubmitProject(app: Application): boolean {
@@ -264,22 +283,30 @@ export class SessionsExplorerComponent implements OnInit {
     this.router.navigate(['/candidate/projects/new'], { queryParams: { sessionId: s.id } });
   }
 
-  openQuestionnaire(s: Session, app: Application | null) {
+  openQuestionnaire(s: Session) {
     this.questionnaireSession = s;
-    this.questionnaireApp = app;
+    const rid = this.getCurrentRoundId(s);
+    if (!rid) return;
+    
     this.answers = {};
     this.submitError = '';
     this.submitSuccess = false;
     this.questionsLoading = true;
-    this.questionnaireService.getQuestionnaire(s.id).subscribe(r => {
-      this.questions = r.data || [];
-      this.questionsLoading = false;
+    this.questionnaireService.getQuestionnaire(rid).subscribe({
+      next: r => {
+        this.questions = r.data || [];
+        this.questionsLoading = false;
+      },
+      error: err => {
+        console.error('Erreur chargement questionnaire', err);
+        this.questionsLoading = false;
+        this.submitError = "Impossible de charger le questionnaire.";
+      }
     });
   }
 
   closeQuestionnaire() {
     this.questionnaireSession = null;
-    this.questionnaireApp = null;
   }
 
   getOptions(q: SessionQuestion): string[] {
@@ -315,13 +342,16 @@ export class SessionsExplorerComponent implements OnInit {
       this.submitError = `Veuillez répondre aux questions obligatoires : ${missing.map(q => q.label).join(', ')}`;
       return;
     }
+    const rid = this.getCurrentRoundId(this.questionnaireSession);
+    if (!rid) return;
+
     this.submitting = true;
     this.submitError = '';
-    this.questionnaireService.submitAnswers(this.questionnaireSession.id, this.answers).subscribe({
+    this.questionnaireService.submitAnswers(rid, this.answers).subscribe({
       next: () => {
         this.submitting = false;
         this.submitSuccess = true;
-        this.answeredSessions.add(this.questionnaireSession!.id);
+        this.answeredRounds.add(rid);
         this.load(); // Refresh applications
         setTimeout(() => {
           this.closeQuestionnaire();

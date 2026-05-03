@@ -8,7 +8,7 @@ import lombok.Data;
 @Builder
 public class SessionQuestionResponse {
     private Long id;
-    private Long sessionId;
+    private Long roundId;
     private String label;
     private QuestionType type;
     private String options;

@@ -13,6 +13,13 @@ public class RoundResponse {
     private String name;
     private String description;
     private int orderIndex;
+    private Integer passingCandidatesCount;
     private RoundStatus status;
     private List<UserResponse> evaluators;
+    private UserResponse juryPresident;
+    private boolean selectionValidated;
+    private boolean selectionFinalized;
+    /** Number of questions in this round's questionnaire */
+    private int questionCount;
+    private List<SessionQuestionResponse> questions;
 }
